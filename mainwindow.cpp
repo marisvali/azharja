@@ -8,8 +8,9 @@
 #include <QLineEdit>
 #include <QShortcut>
 #include <QMessageBox>
+#include <QVBoxLayout>
 
-MainWindow::ItemEditTab::ItemEditTab(const Data::Item& item, QFont font)
+MainWindow::ItemWidget::ItemWidget(const Data::Item& item, QFont font)
 {
     mItemID = item.mID;
     
@@ -66,7 +67,7 @@ MainWindow::ItemEditTab::ItemEditTab(const Data::Item& item, QFont font)
     journalAnswer->setCurrentIndex(1);
 }
 
-bool MainWindow::ItemEditTab::IsEmpty()
+bool MainWindow::ItemWidget::IsEmpty()
 {
     return ItemID() == -1 &&
            mNeed->text() == "" &&
@@ -80,28 +81,36 @@ MainWindow::MainWindow(QWidget *parent)
 {
     mUI->setupUi(this);
     
-    mUI->ItemEdit->removeTab(0);
+    mSplitterMain = new QSplitter();
+    mItemCurrentWidget = new ItemWidget(Data::Item(), this->font());
+    mItemsOpen.push_back(mItemCurrentWidget);
+    mSplitterMain->addWidget(mItemCurrentWidget);
+    mItemList = new QListWidget();
+    mSplitterMain->addWidget(mItemList);
+    mSplitterMain->setOrientation(Qt::Orientation::Vertical);
     
-    //Add an empty tab that's not part of mData.
-    OpenItem(-1);
+    QGridLayout* layout = new QGridLayout(mUI->MainWidget);
+    layout->addWidget(mSplitterMain);
     
-    //Add new tab when right clicking the item list.
-    //I use the custom context menu because the context menu is what is triggered on right click.
-    mUI->ItemList->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(mUI->ItemList, &QListView::customContextMenuRequested, [this](QPoint){
-        OpenItem(ItemIDSelected());
+    connect(mItemList, SIGNAL(itemDoubleClicked(QListWidgetItem *)), this, SLOT(on_ItemList_itemDoubleClicked(QListWidgetItem *)));
+    
+    // Add new tab when right clicking the item list.
+    // I use the custom context menu because the context menu is what is triggered on right click.
+    mItemList->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(mItemList, &QListView::customContextMenuRequested, [this](QPoint){
+        ItemOpen(ItemIDSelected());
     });
     
-    //Add shortcuts.
+    // Add shortcuts.
     auto ctrlW = new QShortcut(QKeySequence("Ctrl+w"), this);
-    connect(ctrlW, SIGNAL(activated()), this, SLOT(CloseCurrentTab()));
+    connect(ctrlW, SIGNAL(activated()), this, SLOT(ItemCloseCurrent()));
     
     auto ctrlN = new QShortcut(QKeySequence("Ctrl+n"), this);
-    connect(ctrlN, SIGNAL(activated()), this, SLOT(NewTab()));
+    connect(ctrlN, SIGNAL(activated()), this, SLOT(ItemNew()));
     
     mData.LoadFromDiskOld();
     
-    SetItemList(mData.GetItemTop());
+    ItemListUpdate(mData.GetItemTop());
 }
 
 MainWindow::~MainWindow()
@@ -119,40 +128,40 @@ QListWidgetItem* ItemToWidget(Data::Item item)
     return itemWidget;
 }
 
-void MainWindow::SetItemList(int64_t itemID)
+void MainWindow::ItemListUpdate(int64_t itemID)
 {
     if (mData.Items[itemID].mChildrenIDs.size() == 0)
         return;
     
-    mItemIDCurrent = itemID;
-    mUI->ItemList->clear();
+    mItemCurrentID = itemID;
+    mItemList->clear();
     
     for (auto parentID: mData.Items[itemID].mParentsIDs)
-        mUI->ItemList->addItem(ItemToWidget(mData.Items[parentID]));
+        mItemList->addItem(ItemToWidget(mData.Items[parentID]));
     
     auto widget = ItemToWidget(mData.Items[itemID]);
     auto font = widget->font();
     font.setBold(true);
     widget->setFont(font);
-    mUI->ItemList->addItem(widget);
+    mItemList->addItem(widget);
     
     for (auto childID: mData.Items[itemID].mChildrenIDs)
-        mUI->ItemList->addItem(ItemToWidget(mData.Items[childID]));
+        mItemList->addItem(ItemToWidget(mData.Items[childID]));
 }
 
 void MainWindow::on_ItemList_itemDoubleClicked(QListWidgetItem*)
 {
     auto itemID = ItemIDSelected();
     if (mData.Items[itemID].mChildrenIDs.size() == 0)
-        OpenItem(itemID);
+        ItemOpen(itemID);
     else
-        SetItemList(itemID);
+        ItemListUpdate(itemID);
 }
 
 int64_t MainWindow::ItemIDSelected()
 {
-    int row = mUI->ItemList->currentRow();
-    auto& item = mData.Items[mItemIDCurrent];
+    int row = mItemList->currentRow();
+    auto& item = mData.Items[mItemCurrentID];
     
     if (row < item.mParentsIDs.size())
         return item.mParentsIDs[row];
@@ -166,76 +175,97 @@ int64_t MainWindow::ItemIDSelected()
     return -1;
 }
 
-void MainWindow::OpenItem(int64_t itemID)
+void MainWindow::ItemOpen(int64_t itemID)
 {
+    mItemCurrentWidget = ItemOpenGetter(itemID);
+    mSplitterMain->replaceWidget(0, mItemCurrentWidget);
+    
+    // Update mItemsOpen.
+    if (HasOnlyEmptyItem() && mItemCurrentWidget != mItemsOpen[0])
+    {
+        delete mItemsOpen[0];
+        mItemsOpen.clear();
+    }
+    if (!mItemsOpen.contains(mItemCurrentWidget))
+        mItemsOpen.push_back(mItemCurrentWidget);
+    
+    // Set focus on the answer edit box.
+    mItemCurrentWidget->mAnswer->activateWindow();
+    mItemCurrentWidget->mAnswer->grabFocus();
+}
+
+MainWindow::ItemWidget* MainWindow::ItemOpenGetter(int64_t itemID)
+{
+    // Check if the item is already open.
+    ItemWidget* found = nullptr;
     if (itemID >= 0)
-    {
-        for (int idx = 0; idx < mUI->ItemEdit->count(); ++idx)
-            if (dynamic_cast<ItemEditTab*>(mUI->ItemEdit->widget(idx))->ItemID() == itemID)
-            {
-                mUI->ItemEdit->setCurrentIndex(idx);
-                OpenItemSetFocus();
-                return;
-            }
-        
-        if (HasOnlyEmptyTab())
-            mUI->ItemEdit->removeTab(0);
-        
-        auto tab = new ItemEditTab(mData.Items[itemID], this->font());
-        mUI->ItemEdit->setCurrentIndex(mUI->ItemEdit->addTab(tab, tab->mNeed->text()));
-    }
+        found = ItemFind(itemID);
     else
-    {
-        for (int idx = 0; idx < mUI->ItemEdit->count(); ++idx)
-            if (dynamic_cast<ItemEditTab*>(mUI->ItemEdit->widget(idx))->IsEmpty())
-            {
-                mUI->ItemEdit->setCurrentIndex(idx);
-                OpenItemSetFocus();
-                return;
-            }
-        
-        auto tab = new ItemEditTab(Data::Item(), this->font());
-        mUI->ItemEdit->setCurrentIndex(mUI->ItemEdit->addTab(tab, "Untitled"));
-    }
+        found = ItemFindEmpty();
+    if (found)
+        return found;
     
-    OpenItemSetFocus();
+    // Create new item.
+    ItemWidget* newItem = nullptr;
+    if (itemID >= 0)
+        newItem = new ItemWidget(mData.Items[itemID], this->font());
+    else
+        newItem = new ItemWidget(mData.Items[itemID], this->font());
+    return newItem;
 }
 
-void MainWindow::OpenItemSetFocus()
+bool MainWindow::HasOnlyEmptyItem()
 {
-    int idx = mUI->ItemEdit->currentIndex();
-    if (idx < 0)
-        return;
-    
-    auto tab = dynamic_cast<ItemEditTab*>(mUI->ItemEdit->widget(idx));
-    tab->mAnswer->activateWindow();
-    tab->mAnswer->grabFocus();
+    return mItemsOpen.size() == 1 && mItemsOpen[0]->IsEmpty();
 }
 
-bool MainWindow::HasOnlyEmptyTab()
+void MainWindow::ItemCloseCurrent()
 {
-    return mUI->ItemEdit->count() == 1 && 
-           dynamic_cast<ItemEditTab*>(mUI->ItemEdit->widget(0))->IsEmpty();
-}
-
-void MainWindow::on_ItemEdit_tabCloseRequested(int index)
-{
-    mUI->ItemEdit->removeTab(index);
-    if (mUI->ItemEdit->count() == 0)
-        OpenItem(-1);
-}
-
-void MainWindow::CloseCurrentTab()
-{
-    if (!HasOnlyEmptyTab())
+    if (!HasOnlyEmptyItem())
     {
-        mUI->ItemEdit->removeTab(mUI->ItemEdit->currentIndex());
-        if (mUI->ItemEdit->count() == 0)
-            OpenItem(-1);
+        if (mItemsOpen.size() == 1)
+        {
+            ItemOpen(-1);
+            delete mItemsOpen[0];
+            mItemsOpen.removeAt(0);
+        }
+        else
+        {
+            int idxToClose = ItemFind(mItemCurrentWidget);
+            int idxToOpen = idxToClose + 1;
+            if (idxToOpen >= mItemsOpen.size())
+                idxToOpen = idxToClose - 1;
+            ItemOpen(mItemsOpen[idxToOpen]->ItemID());
+            delete mItemsOpen[idxToClose];
+            mItemsOpen.removeAt(idxToClose);
+        }
     }
 }
 
-void MainWindow::NewTab()
+void MainWindow::ItemNew()
 {
-    OpenItem(-1);
+    ItemOpen(-1);
+}
+
+MainWindow::ItemWidget* MainWindow::ItemFind(int64_t itemID)
+{
+    auto found = std::find_if(mItemsOpen.begin(), mItemsOpen.end(),
+                             [itemID](ItemWidget* x){ return x->ItemID() == itemID; });
+    return found == mItemsOpen.end() ? nullptr : *found;
+}
+
+MainWindow::ItemWidget* MainWindow::ItemFindEmpty()
+{
+    auto found = std::find_if(mItemsOpen.begin(), mItemsOpen.end(),
+                         [](ItemWidget* x){ return x->IsEmpty(); });
+    return found == mItemsOpen.end() ? nullptr : *found;
+}
+
+int MainWindow::ItemFind(MainWindow::ItemWidget* itemWidget)
+{
+    for (int idx = 0; idx < mItemsOpen.size(); ++idx)
+        if (itemWidget == mItemsOpen[idx])
+            return idx;
+    
+    return -1;
 }

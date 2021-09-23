@@ -6,6 +6,7 @@
 #include <QPlainTextEdit>
 #include <data.h>
 #include <ScintillaEdit.h>
+#include <QSplitter>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -20,10 +21,10 @@ public:
     ~MainWindow();
     
 protected:
-    class ItemEditTab: public QWidget
+    class ItemWidget: public QWidget
     {
     public:
-        ItemEditTab(const Data::Item& item, QFont font);
+        ItemWidget(const Data::Item& item, QFont font);
         
         QLineEdit* mNeed = nullptr;
         ScintillaEdit* mJournal = nullptr;
@@ -37,21 +38,26 @@ protected:
     };
     
     Data mData;
-    int64_t mItemIDCurrent;
+    ItemWidget* mItemCurrentWidget = nullptr;
+    int64_t mItemCurrentID = -1;
+    QSplitter* mSplitterMain = nullptr;
+    QListWidget* mItemList = nullptr;
+    QVector<ItemWidget*> mItemsOpen;
     
-    void SetItemList(int64_t itemID);
+    void ItemListUpdate(int64_t itemID);
     int64_t ItemIDSelected();
-    void OpenItem(int64_t itemID);
-    bool HasOnlyEmptyTab();
-    void OpenItemSetFocus();
+    void ItemOpen(int64_t itemID);
+    bool HasOnlyEmptyItem();
+    ItemWidget* ItemOpenGetter(int64_t itemID);
+    ItemWidget* ItemFind(int64_t itemID);
+    ItemWidget* ItemFindEmpty();
+    int ItemFind(ItemWidget* itemWidget);
     
 private slots:
     void on_ItemList_itemDoubleClicked(QListWidgetItem *item);
     
-    void on_ItemEdit_tabCloseRequested(int index);
-    
-    void CloseCurrentTab();
-    void NewTab();
+    void ItemCloseCurrent();
+    void ItemNew();
     
 private:
     Ui::MainWindow *mUI;
