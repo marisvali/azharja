@@ -2,11 +2,11 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QListWidget>
-#include <QPlainTextEdit>
 #include <data.h>
-#include <ScintillaEdit.h>
 #include <QSplitter>
+#include <dlgitemexplore.h>
+#include <itemwidget.h>
+#include <itemparentswidget.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -21,43 +21,32 @@ public:
     ~MainWindow();
     
 protected:
-    class ItemWidget: public QWidget
-    {
-    public:
-        ItemWidget(const Data::Item& item, QFont font);
-        
-        QLineEdit* mNeed = nullptr;
-        ScintillaEdit* mJournal = nullptr;
-        ScintillaEdit* mAnswer = nullptr;
-        
-        int64_t ItemID() { return mItemID; }
-        bool IsEmpty();
-    
-    protected:
-        int64_t mItemID = -1;
-    };
-    
     Data mData;
     ItemWidget* mItemCurrentWidget = nullptr;
-    int64_t mItemCurrentID = -1;
     QSplitter* mSplitterMain = nullptr;
-    QListWidget* mItemList = nullptr;
     QVector<ItemWidget*> mItemsOpen;
+    DlgItemExplore* mItemExplore;
+    ItemParentsWidget* mItemParents;
     
-    void ItemListUpdate(int64_t itemID);
-    int64_t ItemIDSelected();
-    void ItemOpen(int64_t itemID);
     bool HasOnlyEmptyItem();
     ItemWidget* ItemOpenGetter(int64_t itemID);
     ItemWidget* ItemFind(int64_t itemID);
     ItemWidget* ItemFindEmpty();
     int ItemFind(ItemWidget* itemWidget);
+    void closeEvent(QCloseEvent *event);
+    void ItemParentsUpdate();
     
 private slots:
-    void on_ItemList_itemDoubleClicked(QListWidgetItem *item);
-    
     void ItemCloseCurrent();
+    void ItemCloseCurrent(bool grabFocus);
+    void ItemClose(int64_t itemID, bool grabFocus);
     void ItemNew();
+    void ItemExploreShow();
+    void ItemOpen(int64_t itemID, bool grabFocus = true);
+    void ItemParentsShow();
+    void ParentDelete();
+    void AddParent(int64_t itemID);
+    void ItemCurrentFocus();
     
 private:
     Ui::MainWindow *mUI;

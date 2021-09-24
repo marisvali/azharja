@@ -10,11 +10,17 @@ CONFIG += c++11
 
 SOURCES += \
     data.cpp \
+    dlgitemexplore.cpp \
+    itemparentswidget.cpp \
+    itemwidget.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
     data.h \
+    dlgitemexplore.h \
+    itemparentswidget.h \
+    itemwidget.h \
     mainwindow.h
 
 FORMS += \
