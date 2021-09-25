@@ -41,6 +41,9 @@ MainWindow::MainWindow(QWidget *parent)
     auto altP = new QShortcut(QKeySequence("Alt+p"), this);
     connect(altP, SIGNAL(activated()), this, SLOT(ItemParentsShow()));
     
+    auto esc = new QShortcut(QKeySequence("Esc"), this);
+    connect(esc, SIGNAL(activated()), this, SLOT(CloseExtraWindows()));
+    
     mItemParents->mList->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(mItemParents->mList, &QListView::customContextMenuRequested, [this](QPoint){
         ParentDelete();
@@ -248,4 +251,10 @@ void MainWindow::ItemCurrentFocus()
         mItemCurrentWidget->activateWindow();
         mItemCurrentWidget->setFocus();
     }
+}
+
+void MainWindow::CloseExtraWindows()
+{
+    mItemExplore->hide();
+    mSplitterMain->replaceWidget(1, new QWidget()); // Hide the list of parents.
 }

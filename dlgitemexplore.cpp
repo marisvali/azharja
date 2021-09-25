@@ -109,7 +109,10 @@ void DlgItemExplore::ItemEnter()
 {
     auto itemID = ItemIDSelected();
     if (mData.Items[itemID].mChildrenIDs.size() == 0)
+    {
         emit ItemOpen(itemID, true);
+        hide();
+    }
     else
         ItemListUpdate(itemID);
 }

@@ -47,6 +47,7 @@ private slots:
     void ParentDelete();
     void AddParent(int64_t itemID);
     void ItemCurrentFocus();
+    void CloseExtraWindows();
     
 private:
     Ui::MainWindow *mUI;
