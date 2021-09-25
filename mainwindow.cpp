@@ -17,8 +17,10 @@ MainWindow::MainWindow(QWidget *parent)
 {
     mUI->setupUi(this);
     
+    mData.LoadFromDiskOld();
+    
     mSplitterMain = new QSplitter();
-    mItemsOpen.push_back(new ItemWidget(Data::Item(), this->font()));
+    mItemsOpen.push_back(new ItemWidget(mData.CreateNewItem(), this->font()));
     mSplitterMain->addWidget(mItemsOpen[0]);
     mSplitterMain->addWidget(new QWidget());
     mSplitterMain->setOrientation(Qt::Orientation::Vertical);
@@ -48,8 +50,6 @@ MainWindow::MainWindow(QWidget *parent)
         ParentDelete();
     });
     
-    mData.LoadFromDiskOld();
-    
     mItemExplore = new DlgItemExplore(mData, this);
     mItemExplore->setFont(this->font());
     connect(mItemExplore, SIGNAL(ItemOpen(int64_t,bool)), this, SLOT(ItemOpen(int64_t,bool)));
@@ -62,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
     mSplitterMain->restoreGeometry(settings.value("MainWindow/mSplitterMainGeometry").toByteArray());
     mSplitterMain->restoreState(settings.value("MainWindow/mSplitterMainState").toByteArray());
     
-    ItemOpenNew();
+    ItemOpenNew(true);
 }
 
 MainWindow::~MainWindow()
@@ -93,17 +93,17 @@ void MainWindow::ItemOpen(int64_t itemID, bool grabFocus)
     ItemOpen(newItem, grabFocus);
 }
 
-void MainWindow::ItemOpenNew()
+void MainWindow::ItemOpenNew(bool grabFocus)
 {
     // Check if an empty item already exists.
     ItemWidget* found = nullptr;
     found = ItemFindEmpty();
     if (found)
-        return ItemOpen(found, true);
+        return ItemOpen(found, grabFocus);
     
     // Create new item.
-    auto newItem = new ItemWidget(Data::Item(), this->font());
-    ItemOpen(newItem, true);
+    auto newItem = new ItemWidget(mData.CreateNewItem(), this->font());
+    ItemOpen(newItem, grabFocus);
 }
 
 void MainWindow::ItemOpen(ItemWidget* itemWidget, bool grabFocus)
@@ -148,10 +148,10 @@ void MainWindow::ItemParentsUpdate()
     auto itemID = mItemsOpen.last()->ItemID();
     if (itemID >= 0)
     {
-        Data::Item& item = mData[itemID];
+        auto& item = mData[itemID];
         for (auto parentID: item.Parents())
             if (parentID != Data::GetItemTop())
-                mItemParents->mList->addItem(mData[parentID].mNeed);
+                mItemParents->mList->addItem(mData[parentID].Need());
     }
 }
 
@@ -174,7 +174,7 @@ void MainWindow::ItemCloseCurrent(bool grabFocus)
     mItemsOpen.pop_back();
     
     if (mItemsOpen.size() == 0)
-        ItemOpenNew();
+        ItemOpenNew(grabFocus);
     else
         ItemOpen(mItemsOpen.last(), grabFocus);
 }
@@ -217,7 +217,7 @@ void MainWindow::ParentDelete()
         return;
     
     auto& item = mData[mItemsOpen.last()->ItemID()];
-    mData.RemoveParent(item.mID, item.Parents()[idx]);
+    item.RemoveParent(item.Parents()[idx]);
     ItemParentsUpdate();
     
     // Update the items in explorer.
@@ -230,7 +230,7 @@ void MainWindow::AddParent(int64_t itemParentID)
         return;
     
     auto& item = mData[mItemsOpen.last()->ItemID()];
-    mData.AddParent(item.mID, itemParentID);
+    item.AddParent(itemParentID);
     ItemParentsUpdate();
     
     // Update the items in explorer.
@@ -253,4 +253,9 @@ void MainWindow::CloseExtraWindows()
 {
     mItemExplore->hide();
     mSplitterMain->replaceWidget(1, new QWidget()); // Hide the list of parents.
+}
+
+void MainWindow::ItemOpenNew()
+{
+    ItemOpenNew(true);
 }

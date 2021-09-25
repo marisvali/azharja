@@ -3,10 +3,8 @@
 #include <QTabWidget>
 #include <QTabBar>
 
-ItemWidget::ItemWidget(const Data::Item& item, QFont font)
+ItemWidget::ItemWidget(Data::Item& item, QFont font): mItem(item)
 {
-    mItemID = item.mID;
-    
     mNeed = new QLineEdit();
     mNeed->setObjectName("Need");
     
@@ -22,24 +20,24 @@ ItemWidget::ItemWidget(const Data::Item& item, QFont font)
     mJournal = new ScintillaEditCustom(font);
     tabJournalLayout->addWidget(mJournal);
     mJournal->setObjectName("Journal");
-    connect(mJournal, SIGNAL(notifyChange()), this, SLOT(UpdateTabTitleText()));
+    connect(mJournal, SIGNAL(notifyChange()), this, SLOT(UpdateJournal()));
     
     QVBoxLayout* tabAnswerLayout = new QVBoxLayout(tabAnswer);
     mAnswer = new ScintillaEditCustom(font);
     tabAnswerLayout->addWidget(mAnswer);
     mAnswer->setObjectName("Answer");
-    connect(mAnswer, SIGNAL(notifyChange()), this, SLOT(UpdateTabTitleText()));
+    connect(mAnswer, SIGNAL(notifyChange()), this, SLOT(UpdateAnswer()));
     
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(mNeed);
     layout->addWidget(mJournalAnswer);
     
-    if (mItemID >= 0)
+    if (mItem.ID() >= 0)
     {
-        mNeed->setText(item.mNeed);
-        mJournal->setText(item.mJournal.toUtf8().data());
-        mAnswer->setText(item.mAnswer.toUtf8().data());
+        mNeed->setText(item.Need());
+        mJournal->setText(item.Journal().toUtf8().data());
+        mAnswer->setText(item.Answer().toUtf8().data());
     }
     
     connect(mJournalAnswer, SIGNAL(currentChanged(int)), this, SLOT(TabChanged(int)));
@@ -49,13 +47,13 @@ ItemWidget::ItemWidget(const Data::Item& item, QFont font)
     else
         mJournalAnswer->setCurrentIndex(1);
     
-    UpdateTabTitleText();
+    UpdateJournal();
+    UpdateAnswer();
 }
 
 bool ItemWidget::IsEmpty()
 {
-    return ItemID() == -1 &&
-           mNeed->text() == "" &&
+    return mNeed->text() == "" &&
            mJournal->length() == 0 &&
            mAnswer->length() == 0;
 }
@@ -68,12 +66,23 @@ void ItemWidget::TabChanged(int index)
         this->setFocusProxy(mAnswer);
 }
 
-void ItemWidget::UpdateTabTitleText()
+void ItemWidget::UpdateJournal()
 {
     mJournalAnswer->tabBar()->setTabTextColor(0, mJournal->length() == 0 ? 
                                                   QColor(Qt::GlobalColor::gray) :
                                                   QColor(Qt::GlobalColor::black));
+    mDirtyJournal = true;
+}
+
+void ItemWidget::UpdateAnswer()
+{
     mJournalAnswer->tabBar()->setTabTextColor(1, mAnswer->length() == 0 ? 
                                                   QColor(Qt::GlobalColor::gray) :
                                                   QColor(Qt::GlobalColor::black));
+    mDirtyAnswer = true;
+}
+
+void ItemWidget::UpdateNeed()
+{
+    mDirtyNeed = true;
 }

@@ -87,12 +87,32 @@ private:
     const QString ConfigFile = DataFolder + "/config.xml";
 };
 
-void Data::Item::LoadFromDisk(QString path)
+void Data::Item::SetNeed(const QString& str)
+{
+    mNeed = str;
+    mData.mItemsDirty.insert(mID);
+}
+
+void Data::Item::SetJournal(const QString& str)
+{
+    mJournal = str;
+    mData.mItemsDirty.insert(mID);
+}
+
+void Data::Item::SetAnswer(const QString& str)
+{
+    mAnswer = str;
+    mData.mItemsDirty.insert(mID);
+}
+
+Data::Item* Data::Item::LoadFromDisk(QString path, Data& parent)
 {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         throw new std::exception(("Invalid path: " + path).toUtf8().constData());
-
+    
+    auto newItem = new Item(parent, -1);
+    
     QXmlStreamReader xml(&file);
     while (!xml.atEnd())
     {
@@ -103,20 +123,25 @@ void Data::Item::LoadFromDisk(QString path)
         QString node = xml.name().toString();
         
         if (node == "need")
-            mNeed = xml.readElementText();
+            newItem->mNeed = xml.readElementText();
         
         else if (node == "journal")
-            mJournal = xml.readElementText();
+            newItem->mJournal = xml.readElementText();
         
         else if (node == "answer")
-            mAnswer = xml.readElementText();
+            newItem->mAnswer = xml.readElementText();
         
         else if (node == "ID")
-            mID = xml.readElementText().toLongLong();
+            newItem->mID = xml.readElementText().toLongLong();
         
         else if (node == "solved")
-            mSolved = xml.readElementText().toInt() != 0;
+            newItem->mSolved = xml.readElementText().toInt() != 0;
+        
+        else if (node == "parent")
+            newItem->mParentsIDs.push_back(xml.readElementText().toLongLong());
     }
+    
+    return newItem;
 }
 
 bool Data::Item::NoParent()
@@ -126,15 +151,47 @@ bool Data::Item::NoParent()
             mParentsIDs[0] == Data::GetItemTop());
 }
 
+bool Data::Item::IsEmpty()
+{
+    return mNeed == "" && mJournal == "" && mAnswer == "";
+}
+
+
+void Data::Item::AddParent(int64_t parentID)
+{
+    if (NoParent())
+        mParentsIDs.clear();
+    
+    if (!mParentsIDs.contains(parentID))
+        mParentsIDs.push_back(parentID);
+    
+    if (!mData[parentID].mChildrenIDs.contains(mID))
+        mData[parentID].mChildrenIDs.push_back(mID);
+}
+
+void Data::Item::RemoveParent(int64_t parentID)
+{
+    mParentsIDs.removeOne(parentID);
+    if (mParentsIDs.size() == 0)
+        mParentsIDs.push_back(GetItemTop());
+    
+    mData[parentID].mChildrenIDs.removeOne(mID);
+}
+
+Data::~Data()
+{
+    for (auto item: mItems)
+        delete item;
+}
+
 void Data::LoadFromDisk()
 {
     QDir dir(ItemsFolder);
     QStringList itemNames = dir.entryList(QStringList() << "*.xml", QDir::Files);
     for (auto& itemName: itemNames)
     {
-        Item item;
-        item.LoadFromDisk(ItemsFolder + "/" + itemName);
-        mItems.insert(item.mID, item);
+        auto item = Item::LoadFromDisk(ItemsFolder + "/" + itemName, *this);
+        mItems.insert(item->mID, item);
     }
     
     AfterLoad();
@@ -155,24 +212,22 @@ void Data::LoadFromDiskOld()
         for (auto& tag: item.mTags)
             if (!itemsTags.contains(tag))
             {
-                Data::Item item;
-                item.mID = ++maxID;
-                item.mNeed = tag;
-                mItems.insert(item.mID, item);
-                itemsTags.insert(tag, item.mID);
+                auto item = new Data::Item(*this, ++maxID);
+                item->mNeed = tag;
+                mItems.insert(item->mID, item);
+                itemsTags.insert(tag, item->mID);
             }
         
     for (auto& itemOld: dataOld.Items)
     {
-        Data::Item item;
-        item.mID = itemOld.mID;
-        item.mNeed = itemOld.mNeed;
-        item.mJournal = itemOld.mJournal;
-        item.mAnswer = itemOld.mAnswer;
-        mItems.insert(item.mID, item);
+        auto item = new Data::Item(*this, itemOld.mID);
+        item->mNeed = itemOld.mNeed;
+        item->mJournal = itemOld.mJournal;
+        item->mAnswer = itemOld.mAnswer;
+        mItems.insert(item->mID, item);
         
         for (auto& tagParent: itemOld.mTags)
-            AddParent(item.mID, itemsTags[tagParent]);
+            mItems[itemOld.mID]->AddParent(itemsTags[tagParent]);
     }
     
     AfterLoad();
@@ -180,34 +235,35 @@ void Data::LoadFromDiskOld()
 
 void Data::AfterLoad()
 {
-    Item itemTop;
-    itemTop.mID = GetItemTop();
-    itemTop.mNeed = "Needs";
-    mItems.insert(itemTop.mID, itemTop);
+    auto itemTop = new Item(*this, GetItemTop());
+    itemTop->mNeed = "Needs";
+    mItems.insert(itemTop->mID, itemTop);
     
     for (auto& item: mItems)
-        if (item.NoParent() && item.mID != GetItemTop())
-            AddParent(item.mID, itemTop.mID);
+    {
+        if (item->NoParent() && item->mID != GetItemTop())
+            item->AddParent(itemTop->mID);
+        if (item->ID() > mCurrentMaxID)
+            mCurrentMaxID = item->ID();
+    }
 }
 
-void Data::AddParent(int64_t itemID, int64_t parentID)
+Data::Item& Data::CreateNewItem()
 {
-    if (mItems[itemID].NoParent())
-        mItems[itemID].mParentsIDs.clear();
+    if (mItems[mCurrentMaxID]->IsEmpty())
+        return *mItems[mCurrentMaxID];
     
-    if (!mItems[itemID].mParentsIDs.contains(parentID))
-        mItems[itemID].mParentsIDs.push_back(parentID);
-    
-    if (!mItems[parentID].mChildrenIDs.contains(itemID))
-        mItems[parentID].mChildrenIDs.push_back(itemID);
+    ++mCurrentMaxID;
+    mItems.insert(mCurrentMaxID, new Item(*this, mCurrentMaxID));
+    mItemsDirty.insert(mCurrentMaxID);
+    return *mItems[mCurrentMaxID];
 }
 
-void Data::RemoveParent(int64_t itemID, int64_t parentID)
+void Data::DeleteItem(int64_t itemID)
 {
-    auto& vec = mItems[itemID].mParentsIDs;
-    vec.removeOne(parentID);
-    if (vec.size() == 0)
-        vec.push_back(GetItemTop());
-    
-    mItems[parentID].mChildrenIDs.removeOne(itemID);
+    delete mItems[itemID];
+    mItems.remove(itemID);
+    if (itemID == mCurrentMaxID)
+        --mCurrentMaxID;
+    mItemsDirty.insert(itemID);
 }

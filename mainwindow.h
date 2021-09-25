@@ -34,6 +34,7 @@ protected:
     void closeEvent(QCloseEvent *event);
     void ItemParentsUpdate();
     void ItemOpen(ItemWidget* itemWidget, bool grabFocus = true);
+    void ItemOpenNew(bool grabFocus);
     
 private slots:
     void ItemCloseCurrent();

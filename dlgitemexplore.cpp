@@ -52,7 +52,7 @@ int64_t DlgItemExplore::ItemIDSelected()
         return item.Parents()[row];
     
     if (row == item.Parents().size())
-        return item.mID;
+        return item.ID();
     
     if (row > item.Parents().size())
         return item.Children()[row - item.Parents().size() - 1];
@@ -60,18 +60,18 @@ int64_t DlgItemExplore::ItemIDSelected()
     return -1;
 }
 
-QString ItemWidgetName(Data::Item item)
+QString ItemWidgetName(const Data::Item& item)
 {
     if (item.Children().size() > 0)
-        return "[" + item.mNeed + "]";
+        return "[" + item.Need() + "]";
     else
-        return item.mNeed;
+        return item.Need();
 }
 
-QListWidgetItem* ItemToWidget(Data::Item item)
+QListWidgetItem* ItemToWidget(const Data::Item& item)
 {
     auto itemWidget = new QListWidgetItem(ItemWidgetName(item));
-    if (item.mSolved)
+    if (item.Solved())
         itemWidget->setBackground(QBrush(QColor("#AEBD93"))); //green
     else
         itemWidget->setBackground(QBrush("#FFA9A3")); //red
