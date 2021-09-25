@@ -14,14 +14,16 @@ SOURCES += \
     itemparentswidget.cpp \
     itemwidget.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    scintillaeditcustom.cpp
 
 HEADERS += \
     data.h \
     dlgitemexplore.h \
     itemparentswidget.h \
     itemwidget.h \
-    mainwindow.h
+    mainwindow.h \
+    scintillaeditcustom.h
 
 FORMS += \
     mainwindow.ui

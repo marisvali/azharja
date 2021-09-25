@@ -2,7 +2,7 @@
 #define ITEMWIDGET_H
 
 #include <QWidget>
-#include <ScintillaEdit.h>
+#include <ScintillaEditCustom.h>
 #include <QLineEdit>
 #include <data.h>
 
@@ -14,8 +14,8 @@ public:
     ItemWidget(const Data::Item& item, QFont font);
     
     QLineEdit* mNeed = nullptr;
-    ScintillaEdit* mJournal = nullptr;
-    ScintillaEdit* mAnswer = nullptr;
+    ScintillaEditCustom* mJournal = nullptr;
+    ScintillaEditCustom* mAnswer = nullptr;
     
     int64_t ItemID() { return mItemID; }
     bool IsEmpty();

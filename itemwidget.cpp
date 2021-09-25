@@ -18,30 +18,12 @@ ItemWidget::ItemWidget(const Data::Item& item, QFont font)
     journalAnswer->addTab(tabAnswer, "Answer");
     
     QVBoxLayout* tabJournalLayout = new QVBoxLayout(tabJournal);
-    mJournal = new ScintillaEdit();
-    mJournal->styleSetFont(STYLE_DEFAULT, font.family().toUtf8().data());
-    mJournal->styleSetSize(STYLE_DEFAULT, font.pointSize());
-    mJournal->setWrapMode(1);
-    for (int idx = 0; idx < mJournal->margins(); ++idx)
-        mJournal->setMarginWidthN(idx, 0);
-    mJournal->setUseTabs(false);
-    mJournal->setTabIndents(true);
-    mJournal->setIndent(4);
-    
+    mJournal = new ScintillaEditCustom(font);
     tabJournalLayout->addWidget(mJournal);
     mJournal->setObjectName("Journal");
     
     QVBoxLayout* tabAnswerLayout = new QVBoxLayout(tabAnswer);
-    mAnswer = new ScintillaEdit();
-    mAnswer->styleSetFont(STYLE_DEFAULT, font.family().toUtf8().data());
-    mAnswer->styleSetSize(STYLE_DEFAULT, font.pointSize());
-    mAnswer->setWrapMode(1);
-    for (int idx = 0; idx < mAnswer->margins(); ++idx)
-        mAnswer->setMarginWidthN(idx, 0);
-    mAnswer->setUseTabs(false);
-    mAnswer->setTabIndents(true);
-    mAnswer->setIndent(4);
-    
+    mAnswer = new ScintillaEditCustom(font);
     tabAnswerLayout->addWidget(mAnswer);
     mAnswer->setObjectName("Answer");
     
