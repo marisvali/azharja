@@ -60,9 +60,17 @@ int64_t DlgItemExplore::ItemIDSelected()
     return -1;
 }
 
+QString ItemWidgetName(Data::Item item)
+{
+    if (item.Children().size() > 0)
+        return "[" + item.mNeed + "]";
+    else
+        return item.mNeed;
+}
+
 QListWidgetItem* ItemToWidget(Data::Item item)
 {
-    auto itemWidget = new QListWidgetItem(item.mNeed);
+    auto itemWidget = new QListWidgetItem(ItemWidgetName(item));
     if (item.mSolved)
         itemWidget->setBackground(QBrush(QColor("#AEBD93"))); //green
     else
@@ -73,9 +81,6 @@ QListWidgetItem* ItemToWidget(Data::Item item)
 void DlgItemExplore::ItemListUpdate(int64_t itemID)
 {
     auto& item = mData[itemID];
-    
-    if (item.Children().size() == 0)
-        return;
     
     mItemList->clear();
     
@@ -136,12 +141,13 @@ void DlgItemExplore::AddParentSlot()
 
 void DlgItemExplore::RefreshAfterMaxOneItemDifference()
 {
+    auto& item = mData[mItemCurrentID];
+    
     QVector<QString> listPrev;
     for (int idx = 0; idx < mItemList->count(); ++idx)
         listPrev.push_back(mItemList->item(idx)->text());
     
     QVector<int64_t> listNowIDs;
-    auto& item = mData[mItemCurrentID];
     for (auto parentID: item.Parents())
         listNowIDs.push_back(parentID);
     listNowIDs.push_back(mItemCurrentID);
@@ -150,22 +156,43 @@ void DlgItemExplore::RefreshAfterMaxOneItemDifference()
     
     QVector<QString> listNow;
     for (auto id: listNowIDs)
-        listNow.push_back(mData[id].mNeed);
+        listNow.push_back(ItemWidgetName(mData[id]));
     
-    if (listNow.size() == listPrev.size())
-        return; // No change was done to the current list.
+    // Check if we could be in the case that the item just became childless.
+    // In this case there are 2 changes happening to the list:
+    // - the name of the current item loses the brackets []
+    // - the last child disappeared
+    // In this case just update the whole item and lose the current row selection and the scroll position. I assume this won't be a common or big inconvenience.
+    if (item.Children().size() == 0 &&
+        listPrev.size() > listNow.size())
+    {
+        ItemListUpdate(mItemCurrentID);
+        return;
+    }
     
     // Synchronize mItemList so that it contains listNow.
+    // Find the idx where there is a difference between listPrev and listNow
     int idx = 0;
     while (idx < listPrev.size() &&
            idx < listNow.size() &&
            listPrev[idx] == listNow[idx])
         ++idx;
     
+    if (listNow.size() == listPrev.size() && idx == listNow.size())
+        return; // No change.
+    
     if (listPrev.size() > listNow.size())
     {
         // An item was removed from listPrev, namely listPrev[idx].
         delete mItemList->takeItem(idx); // We are responsible for destroying the item we take.
+    }
+    else if (listNow.size() == listPrev.size())
+    {
+        // An item was changed from listPrev to listNow, namely the idx item.
+        delete mItemList->takeItem(idx);
+        mItemList->insertItem(idx, ItemToWidget(mData[listNowIDs[idx]]));
+        if (mItemList->currentRow() > 0)
+            mItemList->setCurrentRow(mItemList->currentRow() - 1);
     }
     else
     {
