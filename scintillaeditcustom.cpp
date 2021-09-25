@@ -13,6 +13,8 @@ ScintillaEditCustom::ScintillaEditCustom(QFont font, QWidget *parent) : Scintill
     setBackSpaceUnIndents(true);
     setIndent(4);
     setWrapIndentMode(SC_WRAPINDENT_SAME);
+    setModEventMask(SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT);
+    setCommandEvents(true);
     connect(this, SIGNAL(charAdded(int)), this, SLOT(CharAdded(int)));
 }
 

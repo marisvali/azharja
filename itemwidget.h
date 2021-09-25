@@ -2,9 +2,10 @@
 #define ITEMWIDGET_H
 
 #include <QWidget>
-#include <ScintillaEditCustom.h>
+#include <scintillaeditcustom.h>
 #include <QLineEdit>
 #include <data.h>
+#include <QTabWidget>
 
 class ItemWidget: public QWidget
 {
@@ -23,8 +24,11 @@ public:
 protected:
     int64_t mItemID = -1;
     
+    QTabWidget* mJournalAnswer;
+    
 private slots:
     void TabChanged(int index);
+    void UpdateTabTitleText();
 };
 
 #endif // ITEMWIDGET_H
