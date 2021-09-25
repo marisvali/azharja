@@ -37,7 +37,9 @@ ItemWidget::ItemWidget(Data::Item& item, QFont font): mItem(item)
     {
         mNeed->setText(item.Need());
         mJournal->setText(item.Journal().toUtf8().data());
+        mJournal->emptyUndoBuffer();
         mAnswer->setText(item.Answer().toUtf8().data());
+        mAnswer->emptyUndoBuffer();
     }
     
     connect(mJournalAnswer, SIGNAL(currentChanged(int)), this, SLOT(TabChanged(int)));
