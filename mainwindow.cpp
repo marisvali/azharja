@@ -18,9 +18,8 @@ MainWindow::MainWindow(QWidget *parent)
     mUI->setupUi(this);
     
     mSplitterMain = new QSplitter();
-    mItemCurrentWidget = new ItemWidget(Data::Item(), this->font());
-    mItemsOpen.push_back(mItemCurrentWidget);
-    mSplitterMain->addWidget(mItemCurrentWidget);
+    mItemsOpen.push_back(new ItemWidget(Data::Item(), this->font()));
+    mSplitterMain->addWidget(mItemsOpen[0]);
     mSplitterMain->addWidget(new QWidget());
     mSplitterMain->setOrientation(Qt::Orientation::Vertical);
     mItemParents = new ItemParentsWidget();
@@ -33,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ctrlW, SIGNAL(activated()), this, SLOT(ItemCloseCurrent()));
     
     auto ctrlN = new QShortcut(QKeySequence("Ctrl+n"), this);
-    connect(ctrlN, SIGNAL(activated()), this, SLOT(ItemNew()));
+    connect(ctrlN, SIGNAL(activated()), this, SLOT(ItemOpenNew()));
     
     auto altE = new QShortcut(QKeySequence("Alt+e"), this);
     connect(altE, SIGNAL(activated()), this, SLOT(ItemExploreShow()));
@@ -63,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
     mSplitterMain->restoreGeometry(settings.value("MainWindow/mSplitterMainGeometry").toByteArray());
     mSplitterMain->restoreState(settings.value("MainWindow/mSplitterMainState").toByteArray());
     
-    ItemOpen(-1);
+    ItemOpenNew();
 }
 
 MainWindow::~MainWindow()
@@ -83,17 +82,58 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::ItemOpen(int64_t itemID, bool grabFocus)
 {
-    mItemCurrentWidget = ItemOpenGetter(itemID);
-    mSplitterMain->replaceWidget(0, mItemCurrentWidget);
+    // Check if the item is already open.
+    ItemWidget* found = nullptr;
+    found = ItemFind(itemID);
+    if (found)
+        return ItemOpen(found, grabFocus);
     
-    // Update mItemsOpen.
-    if (HasOnlyEmptyItem() && mItemCurrentWidget != mItemsOpen[0])
+    // Create new item widget.
+    auto newItem = new ItemWidget(mData[itemID], this->font());
+    ItemOpen(newItem, grabFocus);
+}
+
+void MainWindow::ItemOpenNew()
+{
+    // Check if an empty item already exists.
+    ItemWidget* found = nullptr;
+    found = ItemFindEmpty();
+    if (found)
+        return ItemOpen(found, true);
+    
+    // Create new item.
+    auto newItem = new ItemWidget(Data::Item(), this->font());
+    ItemOpen(newItem, true);
+}
+
+void MainWindow::ItemOpen(ItemWidget* itemWidget, bool grabFocus)
+{
+    mSplitterMain->replaceWidget(0, itemWidget);
+    
+    // Delete the empty item if necessary.
+    if (HasOnlyEmptyItem() && itemWidget != mItemsOpen[0])
     {
-        delete mItemsOpen[0];
+        mItemsOpen[0]->deleteLater();
         mItemsOpen.clear();
     }
-    if (!mItemsOpen.contains(mItemCurrentWidget))
-        mItemsOpen.push_back(mItemCurrentWidget);
+    
+    // Put the newly opened item at the end of the list of open items.
+    if (mItemsOpen.contains(itemWidget))
+    {
+        mItemsOpen.removeAt(mItemsOpen.indexOf(itemWidget));
+        mItemsOpen.push_back(itemWidget);
+    }
+    else
+    {
+        mItemsOpen.push_back(itemWidget);
+    }
+    
+    // Clear memory beyond 20 open items.
+    if (mItemsOpen.size() > 20)
+    {
+        mItemsOpen[0]->deleteLater();
+        mItemsOpen.removeAt(0);
+    }
     
     if (grabFocus)
         ItemCurrentFocus();
@@ -105,32 +145,14 @@ void MainWindow::ItemParentsUpdate()
 {
     // Update the list of parents.
     mItemParents->mList->clear();
-    if (mItemCurrentWidget->ItemID() >= 0)
+    auto itemID = mItemsOpen.last()->ItemID();
+    if (itemID >= 0)
     {
-        Data::Item& item = mData.Items[mItemCurrentWidget->ItemID()];
-        for (auto parentID: item.mParentsIDs)
-            mItemParents->mList->addItem(mData.Items[parentID].mNeed);
+        Data::Item& item = mData[itemID];
+        for (auto parentID: item.Parents())
+            if (parentID != Data::GetItemTop())
+                mItemParents->mList->addItem(mData[parentID].mNeed);
     }
-}
-
-ItemWidget* MainWindow::ItemOpenGetter(int64_t itemID)
-{
-    // Check if the item is already open.
-    ItemWidget* found = nullptr;
-    if (itemID >= 0)
-        found = ItemFind(itemID);
-    else
-        found = ItemFindEmpty();
-    if (found)
-        return found;
-    
-    // Create new item.
-    ItemWidget* newItem = nullptr;
-    if (itemID >= 0)
-        newItem = new ItemWidget(mData.Items[itemID], this->font());
-    else
-        newItem = new ItemWidget(mData.Items[itemID], this->font());
-    return newItem;
 }
 
 bool MainWindow::HasOnlyEmptyItem()
@@ -148,27 +170,13 @@ void MainWindow::ItemCloseCurrent(bool grabFocus)
     if (HasOnlyEmptyItem())
         return;
     
-    if (mItemsOpen.size() == 1)
-    {
-        ItemOpen(-1, grabFocus);
-        delete mItemsOpen[0];
-        mItemsOpen.removeAt(0);
-    }
+    mItemsOpen.last()->deleteLater();
+    mItemsOpen.pop_back();
+    
+    if (mItemsOpen.size() == 0)
+        ItemOpenNew();
     else
-    {
-        int idxToClose = ItemFind(mItemCurrentWidget);
-        int idxToOpen = idxToClose + 1;
-        if (idxToOpen >= mItemsOpen.size())
-            idxToOpen = idxToClose - 1;
-        ItemOpen(mItemsOpen[idxToOpen]->ItemID(), grabFocus);
-        delete mItemsOpen[idxToClose];
-        mItemsOpen.removeAt(idxToClose);
-    }
-}
-
-void MainWindow::ItemNew()
-{
-    ItemOpen(-1);
+        ItemOpen(mItemsOpen.last(), grabFocus);
 }
 
 ItemWidget* MainWindow::ItemFind(int64_t itemID)
@@ -183,15 +191,6 @@ ItemWidget* MainWindow::ItemFindEmpty()
     auto found = std::find_if(mItemsOpen.begin(), mItemsOpen.end(),
                          [](ItemWidget* x){ return x->IsEmpty(); });
     return found == mItemsOpen.end() ? nullptr : *found;
-}
-
-int MainWindow::ItemFind(ItemWidget* itemWidget)
-{
-    for (int idx = 0; idx < mItemsOpen.size(); ++idx)
-        if (itemWidget == mItemsOpen[idx])
-            return idx;
-    
-    return -1;
 }
 
 void MainWindow::ItemExploreShow()
@@ -210,47 +209,44 @@ void MainWindow::ItemParentsShow()
 
 void MainWindow::ParentDelete()
 {
-    if (!mItemCurrentWidget || mItemCurrentWidget->ItemID() < 0)
+    if (mItemsOpen.last()->ItemID() < 0)
         return;
     
     int idx = mItemParents->mList->currentRow();
     if (idx < 0)
         return;
     
-    auto& item = mData.Items[mItemCurrentWidget->ItemID()];
-    auto parentID = item.mParentsIDs[idx];
-    item.mParentsIDs.removeAt(idx);
-    mData.Items[parentID].mChildrenIDs.removeIf([parentID](int64_t id) { return id == parentID; });
+    auto& item = mData[mItemsOpen.last()->ItemID()];
+    mData.RemoveParent(item.mID, item.Parents()[idx]);
     ItemParentsUpdate();
+    
+    // Update the items in explorer.
+    mItemExplore->RefreshAfterMaxOneItemDifference();
 }
 
 void MainWindow::AddParent(int64_t itemParentID)
 {
-    if (mItemCurrentWidget->ItemID() < 0)
+    if (mItemsOpen.last()->ItemID() < 0)
         return;
     
-    auto& item = mData.Items[mItemCurrentWidget->ItemID()];
-    if (!item.mParentsIDs.contains(itemParentID))
-    {
-        item.mParentsIDs.push_back(itemParentID);
-        mData.Items[itemParentID].mChildrenIDs.push_back(item.mID);
-    }
+    auto& item = mData[mItemsOpen.last()->ItemID()];
+    mData.AddParent(item.mID, itemParentID);
     ItemParentsUpdate();
+    
+    // Update the items in explorer.
+    mItemExplore->RefreshAfterMaxOneItemDifference();
 }
 
 void MainWindow::ItemClose(int64_t itemID, bool grabFocus)
 {
-    if (mItemCurrentWidget && mItemCurrentWidget->ItemID() == itemID)
+    if (mItemsOpen.last()->ItemID() == itemID)
         ItemCloseCurrent(grabFocus);
 }
 
 void MainWindow::ItemCurrentFocus()
 {
-    if (mItemCurrentWidget)
-    {
-        mItemCurrentWidget->activateWindow();
-        mItemCurrentWidget->setFocus();
-    }
+    mItemsOpen.last()->activateWindow();
+    mItemsOpen.last()->setFocus();
 }
 
 void MainWindow::CloseExtraWindows()

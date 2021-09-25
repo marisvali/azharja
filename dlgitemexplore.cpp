@@ -46,16 +46,16 @@ void DlgItemExplore::closeEvent(QCloseEvent* event)
 int64_t DlgItemExplore::ItemIDSelected()
 {
     int row = mItemList->currentRow();
-    auto& item = mData.Items[mItemCurrentID];
+    auto& item = mData[mItemCurrentID];
     
-    if (row < item.mParentsIDs.size())
-        return item.mParentsIDs[row];
+    if (row < item.Parents().size())
+        return item.Parents()[row];
     
-    if (row == item.mParentsIDs.size())
+    if (row == item.Parents().size())
         return item.mID;
     
-    if (row > item.mParentsIDs.size())
-        return item.mChildrenIDs[row - item.mParentsIDs.size() - 1];
+    if (row > item.Parents().size())
+        return item.Children()[row - item.Parents().size() - 1];
     
     return -1;
 }
@@ -72,15 +72,15 @@ QListWidgetItem* ItemToWidget(Data::Item item)
 
 void DlgItemExplore::ItemListUpdate(int64_t itemID)
 {
-    auto& item = mData.Items[itemID];
+    auto& item = mData[itemID];
     
-    if (item.mChildrenIDs.size() == 0)
+    if (item.Children().size() == 0)
         return;
     
     mItemList->clear();
     
-    for (auto parentID: item.mParentsIDs)
-        mItemList->addItem(ItemToWidget(mData.Items[parentID]));
+    for (auto parentID: item.Parents())
+        mItemList->addItem(ItemToWidget(mData[parentID]));
     
     auto widget = ItemToWidget(item);
     auto font = widget->font();
@@ -88,12 +88,12 @@ void DlgItemExplore::ItemListUpdate(int64_t itemID)
     widget->setFont(font);
     mItemList->addItem(widget);
     
-    for (auto childID: item.mChildrenIDs)
-        mItemList->addItem(ItemToWidget(mData.Items[childID]));
+    for (auto childID: item.Children())
+        mItemList->addItem(ItemToWidget(mData[childID]));
     
-    int idxItemCurrent = item.mParentsIDs.indexOf(mItemCurrentID);
+    int idxItemCurrent = item.Parents().indexOf(mItemCurrentID);
     if (idxItemCurrent < 0)
-        idxItemCurrent = item.mParentsIDs.size() + 1 + item.mChildrenIDs.indexOf(mItemCurrentID);
+        idxItemCurrent = item.Parents().size() + 1 + item.Children().indexOf(mItemCurrentID);
     mItemList->scrollToItem(mItemList->item(idxItemCurrent), QAbstractItemView::PositionAtCenter);
     mItemList->setCurrentRow(idxItemCurrent);
     
@@ -108,7 +108,7 @@ void DlgItemExplore::ItemDoubleClicked(QListWidgetItem*)
 void DlgItemExplore::ItemEnter()
 {
     auto itemID = ItemIDSelected();
-    if (mData.Items[itemID].mChildrenIDs.size() == 0)
+    if (mData[itemID].Children().size() == 0)
     {
         emit ItemOpen(itemID, true);
         hide();
@@ -132,4 +132,44 @@ void DlgItemExplore::AddParentSlot()
     auto itemID = ItemIDSelected();
     if (itemID >= 0)
         emit AddParent(itemID);
+}
+
+void DlgItemExplore::RefreshAfterMaxOneItemDifference()
+{
+    QVector<QString> listPrev;
+    for (int idx = 0; idx < mItemList->count(); ++idx)
+        listPrev.push_back(mItemList->item(idx)->text());
+    
+    QVector<int64_t> listNowIDs;
+    auto& item = mData[mItemCurrentID];
+    for (auto parentID: item.Parents())
+        listNowIDs.push_back(parentID);
+    listNowIDs.push_back(mItemCurrentID);
+    for (auto childID: item.Children())
+        listNowIDs.push_back(childID);
+    
+    QVector<QString> listNow;
+    for (auto id: listNowIDs)
+        listNow.push_back(mData[id].mNeed);
+    
+    if (listNow.size() == listPrev.size())
+        return; // No change was done to the current list.
+    
+    // Synchronize mItemList so that it contains listNow.
+    int idx = 0;
+    while (idx < listPrev.size() &&
+           idx < listNow.size() &&
+           listPrev[idx] == listNow[idx])
+        ++idx;
+    
+    if (listPrev.size() > listNow.size())
+    {
+        // An item was removed from listPrev, namely listPrev[idx].
+        delete mItemList->takeItem(idx); // We are responsible for destroying the item we take.
+    }
+    else
+    {
+        // An item was added to listNow, namely listNow[idx].
+        mItemList->insertItem(idx, ItemToWidget(mData[listNowIDs[idx]]));
+    }
 }

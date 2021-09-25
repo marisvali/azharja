@@ -22,7 +22,6 @@ public:
     
 protected:
     Data mData;
-    ItemWidget* mItemCurrentWidget = nullptr;
     QSplitter* mSplitterMain = nullptr;
     QVector<ItemWidget*> mItemsOpen;
     DlgItemExplore* mItemExplore;
@@ -32,15 +31,14 @@ protected:
     ItemWidget* ItemOpenGetter(int64_t itemID);
     ItemWidget* ItemFind(int64_t itemID);
     ItemWidget* ItemFindEmpty();
-    int ItemFind(ItemWidget* itemWidget);
     void closeEvent(QCloseEvent *event);
     void ItemParentsUpdate();
+    void ItemOpen(ItemWidget* itemWidget, bool grabFocus = true);
     
 private slots:
     void ItemCloseCurrent();
     void ItemCloseCurrent(bool grabFocus);
     void ItemClose(int64_t itemID, bool grabFocus);
-    void ItemNew();
     void ItemExploreShow();
     void ItemOpen(int64_t itemID, bool grabFocus = true);
     void ItemParentsShow();
@@ -48,6 +46,7 @@ private slots:
     void AddParent(int64_t itemID);
     void ItemCurrentFocus();
     void CloseExtraWindows();
+    void ItemOpenNew();
     
 private:
     Ui::MainWindow *mUI;

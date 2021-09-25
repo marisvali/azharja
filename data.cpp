@@ -119,6 +119,13 @@ void Data::Item::LoadFromDisk(QString path)
     }
 }
 
+bool Data::Item::NoParent()
+{
+    return  mParentsIDs.size() == 0 || 
+            (mParentsIDs.size() == 1 && 
+            mParentsIDs[0] == Data::GetItemTop());
+}
+
 void Data::LoadFromDisk()
 {
     QDir dir(ItemsFolder);
@@ -127,7 +134,7 @@ void Data::LoadFromDisk()
     {
         Item item;
         item.LoadFromDisk(ItemsFolder + "/" + itemName);
-        Items.insert(item.mID, item);
+        mItems.insert(item.mID, item);
     }
     
     AfterLoad();
@@ -143,7 +150,7 @@ void Data::LoadFromDiskOld()
         if (itemOld.mID > maxID)
             maxID = itemOld.mID;
     
-    QMap<QString, Data::Item> itemsTags;
+    QMap<QString, int64_t> itemsTags;
     for (auto& item: dataOld.Items)
         for (auto& tag: item.mTags)
             if (!itemsTags.contains(tag))
@@ -151,7 +158,8 @@ void Data::LoadFromDiskOld()
                 Data::Item item;
                 item.mID = ++maxID;
                 item.mNeed = tag;
-                itemsTags.insert(tag, item);
+                mItems.insert(item.mID, item);
+                itemsTags.insert(tag, item.mID);
             }
         
     for (auto& itemOld: dataOld.Items)
@@ -161,17 +169,11 @@ void Data::LoadFromDiskOld()
         item.mNeed = itemOld.mNeed;
         item.mJournal = itemOld.mJournal;
         item.mAnswer = itemOld.mAnswer;
-        for (auto& tagParent: itemOld.mTags)
-        {
-            itemsTags[tagParent].mChildrenIDs.push_back(item.mID);
-            item.mParentsIDs.push_back(itemsTags[tagParent].mID);
-        }
+        mItems.insert(item.mID, item);
         
-        Items.insert(item.mID, item);
+        for (auto& tagParent: itemOld.mTags)
+            AddParent(item.mID, itemsTags[tagParent]);
     }
-    
-    for (auto& item: itemsTags)
-        Items.insert(item.mID, item);
     
     AfterLoad();
 }
@@ -181,11 +183,31 @@ void Data::AfterLoad()
     Item itemTop;
     itemTop.mID = GetItemTop();
     itemTop.mNeed = "Needs";
-    for (auto& item: Items)
-        if (item.mParentsIDs.size() == 0)
-        {
-            itemTop.mChildrenIDs.push_back(item.mID);
-            item.mParentsIDs.push_back(itemTop.mID);
-        }
-    Items.insert(itemTop.mID, itemTop);
+    mItems.insert(itemTop.mID, itemTop);
+    
+    for (auto& item: mItems)
+        if (item.NoParent() && item.mID != GetItemTop())
+            AddParent(item.mID, itemTop.mID);
+}
+
+void Data::AddParent(int64_t itemID, int64_t parentID)
+{
+    if (mItems[itemID].NoParent())
+        mItems[itemID].mParentsIDs.clear();
+    
+    if (!mItems[itemID].mParentsIDs.contains(parentID))
+        mItems[itemID].mParentsIDs.push_back(parentID);
+    
+    if (!mItems[parentID].mChildrenIDs.contains(itemID))
+        mItems[parentID].mChildrenIDs.push_back(itemID);
+}
+
+void Data::RemoveParent(int64_t itemID, int64_t parentID)
+{
+    auto& vec = mItems[itemID].mParentsIDs;
+    vec.removeOne(parentID);
+    if (vec.size() == 0)
+        vec.push_back(GetItemTop());
+    
+    mItems[parentID].mChildrenIDs.removeOne(itemID);
 }

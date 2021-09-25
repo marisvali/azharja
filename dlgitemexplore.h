@@ -11,6 +11,7 @@ class DlgItemExplore : public QDialog
     
 public:
     explicit DlgItemExplore(Data& data, QWidget *parent = nullptr);
+    void RefreshAfterMaxOneItemDifference();
     
 signals:
     void ItemOpen(int64_t itemID, bool grabFocus);
