@@ -35,7 +35,6 @@ public:
 
         const QVector<int64_t>& Children() const { return mChildrenIDs; }
         const QVector<int64_t>& Parents() const { return mParentsIDs; }
-        bool NoParent();
         bool IsEmpty();
         void AddParent(int64_t parentID);
         void RemoveParent(int64_t parentID);

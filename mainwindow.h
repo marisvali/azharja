@@ -25,7 +25,7 @@ protected:
     QSplitter* mSplitterMain = nullptr;
     QVector<ItemWidget*> mItemsOpen;
     DlgItemExplore* mItemExplore;
-    ItemParentsWidget* mItemParents;
+    ItemParentsWidget* mItemParents = nullptr;
     
     bool HasOnlyEmptyItem();
     ItemWidget* ItemOpenGetter(int64_t itemID);

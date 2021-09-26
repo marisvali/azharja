@@ -4,10 +4,7 @@
 #include <QTabBar>
 
 ItemWidget::ItemWidget(Data::Item& item, QFont font): mItem(item)
-{
-    new QLineEdit(this);
-    return;
-    
+{   
     mNeed = new QLineEdit();
     mNeed->setObjectName("Need");
     connect(mNeed, SIGNAL(textChanged(QString)), this, SLOT(UpdateNeed(QString)));

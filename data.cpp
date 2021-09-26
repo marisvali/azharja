@@ -253,13 +253,6 @@ void Data::Item::DeleteFromDisk(QString path, int64_t id)
     QFile::remove(pathAnswer);
 }
 
-bool Data::Item::NoParent()
-{
-    return  mParentsIDs.size() == 0 || 
-            (mParentsIDs.size() == 1 && 
-            mParentsIDs[0] == Data::GetItemTop());
-}
-
 bool Data::Item::IsEmpty()
 {
     return mNeed == "" && mJournal == "" && mAnswer == "";
@@ -268,9 +261,6 @@ bool Data::Item::IsEmpty()
 
 void Data::Item::AddParent(int64_t parentID)
 {
-    if (NoParent())
-        mParentsIDs.clear();
-    
     if (!mParentsIDs.contains(parentID))
         mParentsIDs.push_back(parentID);
     
@@ -382,10 +372,6 @@ void Data::AfterLoad()
         // Create parent -> child connections.
         for (auto parent: item->Parents())
             mItems[parent]->mChildrenIDs.push_back(item->ID());
-        
-        // Handle top items.
-        if (item->NoParent() && item->mID != GetItemTop())
-            item->AddParent(itemTop->mID);
         
         // Get the current maximum ID.
         if (item->ID() > mCurrentMaxID)

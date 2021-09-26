@@ -20,25 +20,23 @@ MainWindow::MainWindow(QWidget *parent)
     mUI->setupUi(this);
     
     //mData.LoadFromDiskOld();
-    //mData.LoadFromDisk();
+    mData.LoadFromDisk();
     
     mSplitterMain = new QSplitter();
     mSplitterMain->setOrientation(Qt::Orientation::Vertical);
-    mSplitterMain->addWidget(new QTabWidget());
-    mSplitterMain->addWidget(new QTabWidget());
-    
-//    delete mSplitterMain->widget(0);
-//    mSplitterMain->insertWidget(0, new QLineEdit());
-    mSplitterMain->replaceWidget(0, new QLineEdit())->deleteLater();
-    mSplitterMain->insertWidget(0, new QLineEdit());
-    int ccc = mSplitterMain->count();
-    
+    // Adds a new item in mSplitterMain. It's necessary to add instead of doing a replaceWidget because replaceWidget causes a bug if it's called right after addWidget, in the MainWindow constructor.
+    ItemOpenNew(true);
+    mSplitterMain->addWidget(new QWidget());
     QGridLayout* layout = new QGridLayout(mUI->MainWidget);
     layout->addWidget(mSplitterMain);
     
-    return;
-    
+    // Initialize the widget with the list of parents.
     mItemParents = new ItemParentsWidget();
+    mItemParents->mList->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(mItemParents->mList, &QListView::customContextMenuRequested, [this](QPoint){
+        ParentDelete();
+    });
+    ItemParentsUpdate();
     
     // Add shortcuts.
     auto ctrlW = new QShortcut(QKeySequence("Ctrl+w"), this);
@@ -56,17 +54,14 @@ MainWindow::MainWindow(QWidget *parent)
     auto esc = new QShortcut(QKeySequence("Esc"), this);
     connect(esc, SIGNAL(activated()), this, SLOT(CloseExtraWindows()));
     
-    mItemParents->mList->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(mItemParents->mList, &QListView::customContextMenuRequested, [this](QPoint){
-        ParentDelete();
-    });
-    
+    // Initialize the item explorer dialog.
     mItemExplore = new DlgItemExplore(mData, this);
     mItemExplore->setFont(this->font());
     connect(mItemExplore, SIGNAL(ItemOpen(int64_t,bool)), this, SLOT(ItemOpen(int64_t,bool)));
     connect(mItemExplore, SIGNAL(AddParent(int64_t)), this, SLOT(AddParent(int64_t)));
     connect(mItemExplore, SIGNAL(ItemClose(int64_t,bool)), this, SLOT(ItemClose(int64_t,bool)));
     
+    // Restore the last positions of our windows.
     QSettings settings("PlayfulPatterns", "Azharja");
     restoreGeometry(settings.value("MainWindow/Geometry").toByteArray());
     restoreState(settings.value("MainWindow/WindowState").toByteArray());
@@ -77,8 +72,6 @@ MainWindow::MainWindow(QWidget *parent)
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(SaveToMemoryTry()));
     timer->start(300);
-    
-    //ItemOpenNew(true);
 }
 
 MainWindow::~MainWindow()
@@ -130,7 +123,10 @@ void MainWindow::ItemOpenNew(bool grabFocus)
 
 void MainWindow::ItemOpen(ItemWidget* itemWidget, bool grabFocus)
 {
-    mSplitterMain->replaceWidget(0, itemWidget);
+    if (mSplitterMain->count() > 0)
+        mSplitterMain->replaceWidget(0, itemWidget);
+    else
+        mSplitterMain->addWidget(itemWidget); // This is necessary for the first call to ItemOpen.
     
     // Delete the empty item if necessary.
     if (HasOnlyEmptyItem() && itemWidget != mItemsOpen[0])
@@ -165,6 +161,9 @@ void MainWindow::ItemOpen(ItemWidget* itemWidget, bool grabFocus)
 
 void MainWindow::ItemParentsUpdate()
 {
+    if (!mItemParents)
+        return;
+    
     if (mItemsOpen.empty())
         return;
     
