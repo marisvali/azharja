@@ -3,11 +3,10 @@
 #include <QTabWidget>
 #include <QTabBar>
 
-ItemWidget::ItemWidget(Data::Item& item, QFont font): mItem(item)
+ItemWidget::ItemWidget(Item& item, QFont font): mItem(item)
 {   
     mNeed = new QLineEdit();
     mNeed->setObjectName("Need");
-    connect(mNeed, SIGNAL(textChanged(QString)), this, SLOT(UpdateNeed(QString)));
     
     mJournalAnswer = new QTabWidget();
     
@@ -21,13 +20,11 @@ ItemWidget::ItemWidget(Data::Item& item, QFont font): mItem(item)
     mJournal = new ScintillaEditCustom(font);
     tabJournalLayout->addWidget(mJournal);
     mJournal->setObjectName("Journal");
-    connect(mJournal, SIGNAL(notifyChange()), this, SLOT(UpdateJournal()));
     
     QVBoxLayout* tabAnswerLayout = new QVBoxLayout(tabAnswer);
     mAnswer = new ScintillaEditCustom(font);
     tabAnswerLayout->addWidget(mAnswer);
     mAnswer->setObjectName("Answer");
-    connect(mAnswer, SIGNAL(notifyChange()), this, SLOT(UpdateAnswer()));
     
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -44,14 +41,16 @@ ItemWidget::ItemWidget(Data::Item& item, QFont font): mItem(item)
     }
     
     connect(mJournalAnswer, SIGNAL(currentChanged(int)), this, SLOT(TabChanged(int)));
-            
+    connect(mJournal, SIGNAL(notifyChange()), this, SLOT(UpdateJournal()));
+    connect(mAnswer, SIGNAL(notifyChange()), this, SLOT(UpdateAnswer()));
+    connect(mNeed, SIGNAL(textChanged(QString)), this, SLOT(UpdateNeed(QString)));
+    
     if (mAnswer->length() == 0 && mJournal->length() != 0)
         mJournalAnswer->setCurrentIndex(0);
     else
         mJournalAnswer->setCurrentIndex(1);
     
-    UpdateJournal();
-    UpdateAnswer();
+    SetTabTextColors();
 }
 
 ItemWidget::~ItemWidget()
@@ -83,23 +82,30 @@ void ItemWidget::TabChanged(int index)
 
 void ItemWidget::UpdateJournal()
 {
-    mJournalAnswer->tabBar()->setTabTextColor(0, mJournal->length() == 0 ? 
-                                                  QColor(Qt::GlobalColor::gray) :
-                                                  QColor(Qt::GlobalColor::black));
     mDirtyJournal = true;
+    SetTabTextColors();
 }
 
 void ItemWidget::UpdateAnswer()
 {
-    mJournalAnswer->tabBar()->setTabTextColor(1, mAnswer->length() == 0 ? 
-                                                  QColor(Qt::GlobalColor::gray) :
-                                                  QColor(Qt::GlobalColor::black));
     mDirtyAnswer = true;
+    SetTabTextColors();
 }
 
 void ItemWidget::UpdateNeed(const QString&)
 {
     mDirtyNeed = true;
+}
+
+void ItemWidget::SetTabTextColors()
+{
+    mJournalAnswer->tabBar()->setTabTextColor(0, mJournal->length() == 0 ? 
+                                                  QColor(Qt::GlobalColor::gray) :
+                                                  QColor(Qt::GlobalColor::black));
+    
+    mJournalAnswer->tabBar()->setTabTextColor(1, mAnswer->length() == 0 ? 
+                                                  QColor(Qt::GlobalColor::gray) :
+                                                  QColor(Qt::GlobalColor::black));
 }
 
 bool ItemWidget::SaveToMemoryTry()
@@ -117,4 +123,10 @@ bool ItemWidget::SaveToMemoryTry()
             mDirtyAnswer = false;
     
     return !mDirtyNeed && !mDirtyJournal && !mDirtyAnswer;
+}
+
+void ItemWidget::SaveToMemoryGuaranteed()
+{   
+    while (!this->SaveToMemoryTry())
+        QThread::msleep(50);
 }

@@ -2,9 +2,17 @@
 
 void SaveDataThread::run()
 {
-    while (!mDone.load())
+    while (true)
     {
         mData.SaveToDisk();
-        msleep(1000);
+        
+        // Wait for 1 sec but check frequently if we should be done.
+        for (int idx = 0; idx < 50; ++idx)
+        {
+            if (mDone.load())
+                return;
+            
+            msleep(20);
+        }
     }
 }

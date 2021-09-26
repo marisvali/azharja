@@ -12,6 +12,8 @@
 #include <QSettings>
 #include <QTimer>
 #include <QThread>
+#include <QScreen>
+#include <QCloseEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -19,8 +21,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
     mUI->setupUi(this);
     
-    //mData.LoadFromDiskOld();
     mData.LoadFromDisk();
+    connect(&mData, SIGNAL(DoneWithLastSave()), this, SLOT(DoneWithLastSave()));
     
     mSplitterMain = new QSplitter();
     mSplitterMain->setOrientation(Qt::Orientation::Vertical);
@@ -68,10 +70,10 @@ MainWindow::MainWindow(QWidget *parent)
     mSplitterMain->restoreGeometry(settings.value("MainWindow/mSplitterMainGeometry").toByteArray());
     mSplitterMain->restoreState(settings.value("MainWindow/mSplitterMainState").toByteArray());
     
-    // Save data from widget to Data::Item periodically.
-    QTimer *timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(SaveToMemoryTry()));
-    timer->start(300);
+    // Save data from widget to Item periodically.
+    mTimerSaveToMemory = new QTimer(this);
+    connect(mTimerSaveToMemory, SIGNAL(timeout()), this, SLOT(SaveToMemoryTry()));
+    mTimerSaveToMemory->start(300);
 }
 
 MainWindow::~MainWindow()
@@ -79,18 +81,47 @@ MainWindow::~MainWindow()
     mSplitterMain->replaceWidget(0, new QWidget());
     for (auto item : mItemsOpen)
         delete item;
-            
+    mItemsOpen.clear();
     delete mUI;
 }
 
-void MainWindow::closeEvent(QCloseEvent *event)
+void MainWindow::DoneWithLastSave()
 {
+    mWaitForSave->hide();
+    this->close();
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    if (mCloseInitiated)
+    {
+        event->accept();
+        return;
+    }
+    
+    mTimerSaveToMemory->stop();
+    for (auto item : mItemsOpen)
+        item->SaveToMemoryGuaranteed();
+    mData.JustOneMoreSave();
+    
+    mWaitForSave = new QMessageBox(this);
+    mWaitForSave->setWindowTitle("Azharja");
+    mWaitForSave->setText("  Saving data, please wait..  ");
+    mWaitForSave->setStandardButtons(QMessageBox::NoButton);
+    mWaitForSave->setFont(this->font());
+    auto pos = this->screen()->geometry().center();
+    pos -= QPoint(mWaitForSave->sizeHint().width() / 2, 2 * mWaitForSave->sizeHint().height());
+    mWaitForSave->move(pos);
+    mWaitForSave->show();
+    
     QSettings settings("PlayfulPatterns", "Azharja");
     settings.setValue("MainWindow/Geometry", saveGeometry());
     settings.setValue("MainWindow/WindowState", saveState());
     settings.setValue("MainWindow/mSplitterMainGeometry", mSplitterMain->saveGeometry());
     settings.setValue("MainWindow/mSplitterMainState", mSplitterMain->saveState());
-    QMainWindow::closeEvent(event);
+    
+    mCloseInitiated = true;
+    event->ignore();
 }
 
 void MainWindow::ItemOpen(int64_t itemID, bool grabFocus)
@@ -197,8 +228,7 @@ void MainWindow::ItemCloseCurrent(bool grabFocus)
     if (HasOnlyEmptyItem())
         return;
     
-    SaveToMemoryGuaranteed();
-    
+    mItemsOpen.last()->SaveToMemoryGuaranteed();
     mItemsOpen.last()->deleteLater();
     mItemsOpen.pop_back();
     
@@ -305,15 +335,6 @@ void MainWindow::SaveToMemoryTry(QPrivateSignal)
 {
     if (!mItemsOpen.empty())
         mItemsOpen.last()->SaveToMemoryTry();
-}
-
-void MainWindow::SaveToMemoryGuaranteed()
-{
-    if (mItemsOpen.empty())
-        return;
-    
-    while (!mItemsOpen.last()->SaveToMemoryTry())
-        QThread::msleep(50);
 }
 
 void MainWindow::ItemDeleted()

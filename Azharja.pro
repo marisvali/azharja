@@ -11,6 +11,7 @@ CONFIG += c++11
 SOURCES += \
     data.cpp \
     dlgitemexplore.cpp \
+    item.cpp \
     itemparentswidget.cpp \
     itemwidget.cpp \
     main.cpp \
@@ -21,6 +22,7 @@ SOURCES += \
 HEADERS += \
     data.h \
     dlgitemexplore.h \
+    item.h \
     itemparentswidget.h \
     itemwidget.h \
     mainwindow.h \

@@ -12,7 +12,7 @@ class ItemWidget: public QWidget
     Q_OBJECT
     
 public:
-    ItemWidget(Data::Item& item, QFont font);
+    ItemWidget(Item& item, QFont font);
     ~ItemWidget();
     
     QLineEdit* mNeed = nullptr;
@@ -22,16 +22,19 @@ public:
     int64_t ItemID() { return mItem.ID(); }
     bool IsEmpty();
     bool SaveToMemoryTry();
+    void SaveToMemoryGuaranteed();
     
 signals:
     void ItemDeleted();
 
 protected:
     QTabWidget* mJournalAnswer;
-    Data::Item& mItem;
+    Item& mItem;
     bool mDirtyJournal = false;
     bool mDirtyAnswer = false;
     bool mDirtyNeed = false;
+    
+    void SetTabTextColors();
     
 private slots:
     void TabChanged(int index);

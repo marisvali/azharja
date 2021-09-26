@@ -7,6 +7,7 @@
 #include <dlgitemexplore.h>
 #include <itemwidget.h>
 #include <itemparentswidget.h>
+#include <QMessageBox>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -26,6 +27,9 @@ protected:
     QVector<ItemWidget*> mItemsOpen;
     DlgItemExplore* mItemExplore;
     ItemParentsWidget* mItemParents = nullptr;
+    QMessageBox* mWaitForSave = nullptr;
+    QTimer* mTimerSaveToMemory;
+    bool mCloseInitiated = false;
     
     bool HasOnlyEmptyItem();
     ItemWidget* ItemOpenGetter(int64_t itemID);
@@ -35,7 +39,6 @@ protected:
     void ItemParentsUpdate();
     void ItemOpen(ItemWidget* itemWidget, bool grabFocus = true);
     void ItemOpenNew(bool grabFocus);
-    void SaveToMemoryGuaranteed();
     
 private slots:
     void ItemCloseCurrent();
@@ -51,6 +54,7 @@ private slots:
     void ItemOpenNew();
     void SaveToMemoryTry(QPrivateSignal);
     void ItemDeleted();
+    void DoneWithLastSave();
     
 private:
     Ui::MainWindow *mUI;
