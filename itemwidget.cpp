@@ -5,8 +5,12 @@
 
 ItemWidget::ItemWidget(Data::Item& item, QFont font): mItem(item)
 {
+    new QLineEdit(this);
+    return;
+    
     mNeed = new QLineEdit();
     mNeed->setObjectName("Need");
+    connect(mNeed, SIGNAL(textChanged(QString)), this, SLOT(UpdateNeed(QString)));
     
     mJournalAnswer = new QTabWidget();
     
@@ -53,6 +57,18 @@ ItemWidget::ItemWidget(Data::Item& item, QFont font): mItem(item)
     UpdateAnswer();
 }
 
+ItemWidget::~ItemWidget()
+{
+    while (!SaveToMemoryTry())
+        QThread::msleep(50);
+    
+    if (mItem.IsEmpty())
+    {
+        mItem.GetData().DeleteItem(mItem.ID());
+        emit ItemDeleted();
+    }
+}
+
 bool ItemWidget::IsEmpty()
 {
     return mNeed->text() == "" &&
@@ -84,7 +100,24 @@ void ItemWidget::UpdateAnswer()
     mDirtyAnswer = true;
 }
 
-void ItemWidget::UpdateNeed()
+void ItemWidget::UpdateNeed(const QString&)
 {
     mDirtyNeed = true;
+}
+
+bool ItemWidget::SaveToMemoryTry()
+{
+    if (mDirtyNeed)
+        if (mItem.SetNeed(mNeed->text()))
+            mDirtyNeed = false;
+    
+    if (mDirtyJournal)
+        if (mItem.SetJournal(mJournal->getText(mAnswer->length() + 1)))
+            mDirtyJournal = false;
+    
+    if (mDirtyAnswer)
+        if (mItem.SetAnswer(mAnswer->getText(mAnswer->length() + 1)))
+            mDirtyAnswer = false;
+    
+    return !mDirtyNeed && !mDirtyJournal && !mDirtyAnswer;
 }

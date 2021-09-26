@@ -13,6 +13,7 @@ class ItemWidget: public QWidget
     
 public:
     ItemWidget(Data::Item& item, QFont font);
+    ~ItemWidget();
     
     QLineEdit* mNeed = nullptr;
     ScintillaEditCustom* mJournal = nullptr;
@@ -20,6 +21,10 @@ public:
     
     int64_t ItemID() { return mItem.ID(); }
     bool IsEmpty();
+    bool SaveToMemoryTry();
+    
+signals:
+    void ItemDeleted();
 
 protected:
     QTabWidget* mJournalAnswer;
@@ -32,7 +37,7 @@ private slots:
     void TabChanged(int index);
     void UpdateJournal();
     void UpdateAnswer();
-    void UpdateNeed();
+    void UpdateNeed(const QString&);
 };
 
 #endif // ITEMWIDGET_H

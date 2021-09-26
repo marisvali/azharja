@@ -60,7 +60,7 @@ int64_t DlgItemExplore::ItemIDSelected()
     return -1;
 }
 
-QString ItemWidgetName(const Data::Item& item)
+QString ItemWidgetName(Data::Item& item)
 {
     if (item.Children().size() > 0)
         return "[" + item.Need() + "]";
@@ -68,7 +68,7 @@ QString ItemWidgetName(const Data::Item& item)
         return item.Need();
 }
 
-QListWidgetItem* ItemToWidget(const Data::Item& item)
+QListWidgetItem* ItemToWidget(Data::Item& item)
 {
     auto itemWidget = new QListWidgetItem(ItemWidgetName(item));
     if (item.Solved())

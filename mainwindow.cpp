@@ -10,6 +10,8 @@
 #include <QMessageBox>
 #include <QVBoxLayout>
 #include <QSettings>
+#include <QTimer>
+#include <QThread>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -17,17 +19,26 @@ MainWindow::MainWindow(QWidget *parent)
 {
     mUI->setupUi(this);
     
-    mData.LoadFromDiskOld();
+    //mData.LoadFromDiskOld();
+    //mData.LoadFromDisk();
     
     mSplitterMain = new QSplitter();
-    mItemsOpen.push_back(new ItemWidget(mData.CreateNewItem(), this->font()));
-    mSplitterMain->addWidget(mItemsOpen[0]);
-    mSplitterMain->addWidget(new QWidget());
     mSplitterMain->setOrientation(Qt::Orientation::Vertical);
-    mItemParents = new ItemParentsWidget();
+    mSplitterMain->addWidget(new QTabWidget());
+    mSplitterMain->addWidget(new QTabWidget());
+    
+//    delete mSplitterMain->widget(0);
+//    mSplitterMain->insertWidget(0, new QLineEdit());
+    mSplitterMain->replaceWidget(0, new QLineEdit())->deleteLater();
+    mSplitterMain->insertWidget(0, new QLineEdit());
+    int ccc = mSplitterMain->count();
     
     QGridLayout* layout = new QGridLayout(mUI->MainWidget);
     layout->addWidget(mSplitterMain);
+    
+    return;
+    
+    mItemParents = new ItemParentsWidget();
     
     // Add shortcuts.
     auto ctrlW = new QShortcut(QKeySequence("Ctrl+w"), this);
@@ -62,11 +73,20 @@ MainWindow::MainWindow(QWidget *parent)
     mSplitterMain->restoreGeometry(settings.value("MainWindow/mSplitterMainGeometry").toByteArray());
     mSplitterMain->restoreState(settings.value("MainWindow/mSplitterMainState").toByteArray());
     
-    ItemOpenNew(true);
+    // Save data from widget to Data::Item periodically.
+    QTimer *timer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), this, SLOT(SaveToMemoryTry()));
+    timer->start(300);
+    
+    //ItemOpenNew(true);
 }
 
 MainWindow::~MainWindow()
 {
+    mSplitterMain->replaceWidget(0, new QWidget());
+    for (auto item : mItemsOpen)
+        delete item;
+            
     delete mUI;
 }
 
@@ -90,6 +110,7 @@ void MainWindow::ItemOpen(int64_t itemID, bool grabFocus)
     
     // Create new item widget.
     auto newItem = new ItemWidget(mData[itemID], this->font());
+    connect(newItem, SIGNAL(ItemDeleted()), this, SLOT(ItemDeleted()));
     ItemOpen(newItem, grabFocus);
 }
 
@@ -103,6 +124,7 @@ void MainWindow::ItemOpenNew(bool grabFocus)
     
     // Create new item.
     auto newItem = new ItemWidget(mData.CreateNewItem(), this->font());
+    connect(newItem, SIGNAL(ItemDeleted()), this, SLOT(ItemDeleted()));
     ItemOpen(newItem, grabFocus);
 }
 
@@ -143,6 +165,9 @@ void MainWindow::ItemOpen(ItemWidget* itemWidget, bool grabFocus)
 
 void MainWindow::ItemParentsUpdate()
 {
+    if (mItemsOpen.empty())
+        return;
+    
     // Update the list of parents.
     mItemParents->mList->clear();
     auto itemID = mItemsOpen.last()->ItemID();
@@ -167,8 +192,13 @@ void MainWindow::ItemCloseCurrent()
 
 void MainWindow::ItemCloseCurrent(bool grabFocus)
 {
+    if (mItemsOpen.empty())
+        return;
+    
     if (HasOnlyEmptyItem())
         return;
+    
+    SaveToMemoryGuaranteed();
     
     mItemsOpen.last()->deleteLater();
     mItemsOpen.pop_back();
@@ -209,6 +239,9 @@ void MainWindow::ItemParentsShow()
 
 void MainWindow::ParentDelete()
 {
+    if (mItemsOpen.empty())
+        return;
+    
     if (mItemsOpen.last()->ItemID() < 0)
         return;
     
@@ -226,6 +259,9 @@ void MainWindow::ParentDelete()
 
 void MainWindow::AddParent(int64_t itemParentID)
 {
+    if (mItemsOpen.empty())
+        return;
+    
     if (mItemsOpen.last()->ItemID() < 0)
         return;
     
@@ -239,12 +275,18 @@ void MainWindow::AddParent(int64_t itemParentID)
 
 void MainWindow::ItemClose(int64_t itemID, bool grabFocus)
 {
+    if (mItemsOpen.empty())
+        return;
+    
     if (mItemsOpen.last()->ItemID() == itemID)
         ItemCloseCurrent(grabFocus);
 }
 
 void MainWindow::ItemCurrentFocus()
 {
+    if (mItemsOpen.empty())
+        return;
+    
     mItemsOpen.last()->activateWindow();
     mItemsOpen.last()->setFocus();
 }
@@ -258,4 +300,25 @@ void MainWindow::CloseExtraWindows()
 void MainWindow::ItemOpenNew()
 {
     ItemOpenNew(true);
+}
+
+void MainWindow::SaveToMemoryTry(QPrivateSignal)
+{
+    if (!mItemsOpen.empty())
+        mItemsOpen.last()->SaveToMemoryTry();
+}
+
+void MainWindow::SaveToMemoryGuaranteed()
+{
+    if (mItemsOpen.empty())
+        return;
+    
+    while (!mItemsOpen.last()->SaveToMemoryTry())
+        QThread::msleep(50);
+}
+
+void MainWindow::ItemDeleted()
+{
+    // Update the items in explorer.
+    mItemExplore->RefreshAfterMaxOneItemDifference();
 }

@@ -47,3 +47,10 @@ void ScintillaEditCustom::CharAdded(int ch)
         }
     }
 }
+
+QByteArray ScintillaEditCustom::GetAllText()
+{
+    auto array = getText(length() + 1);
+    array.chop(1);
+    return array;
+}

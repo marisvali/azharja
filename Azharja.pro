@@ -15,6 +15,7 @@ SOURCES += \
     itemwidget.cpp \
     main.cpp \
     mainwindow.cpp \
+    savedatathread.cpp \
     scintillaeditcustom.cpp
 
 HEADERS += \
@@ -23,6 +24,7 @@ HEADERS += \
     itemparentswidget.h \
     itemwidget.h \
     mainwindow.h \
+    savedatathread.h \
     scintillaeditcustom.h
 
 FORMS += \

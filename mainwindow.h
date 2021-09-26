@@ -35,6 +35,7 @@ protected:
     void ItemParentsUpdate();
     void ItemOpen(ItemWidget* itemWidget, bool grabFocus = true);
     void ItemOpenNew(bool grabFocus);
+    void SaveToMemoryGuaranteed();
     
 private slots:
     void ItemCloseCurrent();
@@ -48,6 +49,8 @@ private slots:
     void ItemCurrentFocus();
     void CloseExtraWindows();
     void ItemOpenNew();
+    void SaveToMemoryTry(QPrivateSignal);
+    void ItemDeleted();
     
 private:
     Ui::MainWindow *mUI;
