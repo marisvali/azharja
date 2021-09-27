@@ -11,18 +11,20 @@ class Data; // Forward declaration.
 class Item
 {
 public:
-    int64_t ID();
-    const QString Need();
-    const QString Journal();
-    const QString Answer();
-    bool Solved();
+    int64_t ID() const;
+    const QString Need() const;
+    const QString Journal() const;
+    const QString Answer() const;
+    bool Solved() const;
+    bool IsEmpty() const;
+    QVector<int64_t> Children() const;
+    int NrChildren() const;
+    QVector<int64_t> Parents() const;
+    int NrParents() const;
+    
     bool SetNeed(const QString& str);
     bool SetJournal(const QString& str);
     bool SetAnswer(const QString& str);
-
-    const QVector<int64_t>& Children() const { return mChildrenIDs; }
-    const QVector<int64_t>& Parents() const { return mParentsIDs; }
-    bool IsEmpty();
     void AddParent(int64_t parentID);
     void RemoveParent(int64_t parentID);
     Data& GetData() { return mData; };
@@ -45,9 +47,9 @@ protected:
     QVector<int64_t> mChildrenIDs;
     QVector<int64_t> mParentsIDs;
     bool mSolved = false;
-    QRecursiveMutex mMutexMeta;
-    QRecursiveMutex mMutexJournal;
-    QRecursiveMutex mMutexAnswer;
+    mutable QRecursiveMutex mMutexMeta;
+    mutable QRecursiveMutex mMutexJournal;
+    mutable QRecursiveMutex mMutexAnswer;
     bool mDirtyMeta = false;
     bool mDirtyJournal = false;
     bool mDirtyAnswer = false;

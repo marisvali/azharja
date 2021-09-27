@@ -33,7 +33,7 @@ ScintillaEditCustom::ScintillaEditCustom(QFont font, QWidget *parent) : Scintill
     
     // Make the current line visible.
     setElementColour(SC_ELEMENT_CARET_LINE_BACK, 217 | 235 << 8 | 249 << 16 | 255 << 24);
-    setCaretLineVisibleAlways(true);
+    setCaretLineVisibleAlways(false);
 }
 
 void ScintillaEditCustom::CharAdded(int ch)

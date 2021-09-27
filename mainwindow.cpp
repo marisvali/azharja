@@ -21,7 +21,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
     mUI->setupUi(this);
     
-    mData.LoadFromDisk();
+    //mData.LoadFromDisk();
+    mData.LoadFromDiskOld();
     connect(&mData, SIGNAL(DoneWithLastSave()), this, SLOT(DoneWithLastSave()));
     
     mSplitterMain = new QSplitter();
@@ -29,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Adds a new item in mSplitterMain. It's necessary to add instead of doing a replaceWidget because replaceWidget causes a bug if it's called right after addWidget, in the MainWindow constructor.
     ItemOpenNew(true);
     mSplitterMain->addWidget(new QWidget());
-    QGridLayout* layout = new QGridLayout(mUI->MainWidget);
+    QGridLayout* layout = new QGridLayout(this->centralWidget());
     layout->addWidget(mSplitterMain);
     
     // Initialize the widget with the list of parents.
@@ -47,8 +48,11 @@ MainWindow::MainWindow(QWidget *parent)
     auto ctrlN = new QShortcut(QKeySequence("Ctrl+n"), this);
     connect(ctrlN, SIGNAL(activated()), this, SLOT(ItemOpenNew()));
     
+    auto f3 = new QShortcut(QKeySequence(Qt::Key_F3), this);
+    connect(f3, SIGNAL(activated()), this, SLOT(ItemExplorerShow()));
+    
     auto f4 = new QShortcut(QKeySequence(Qt::Key_F4), this);
-    connect(f4, SIGNAL(activated()), this, SLOT(ItemExploreShow()));
+    connect(f4, SIGNAL(activated()), this, SLOT(ItemExplorerUnassignedShow()));
     
     auto altP = new QShortcut(QKeySequence("Alt+p"), this);
     connect(altP, SIGNAL(activated()), this, SLOT(ItemParentsShow()));
@@ -59,15 +63,33 @@ MainWindow::MainWindow(QWidget *parent)
     auto shiftDel = new QShortcut(QKeySequence("Shift+Del"), this);
     connect(shiftDel, SIGNAL(activated()), this, SLOT(ItemDeleteCurrent()));
     
-    // Initialize the item explorer dialog.
-    mItemExplore = new ItemExplorer(mData, this);
-    mItemExplore->setFont(this->font());
-    connect(mItemExplore, SIGNAL(ItemOpen(int64_t,bool)), this, SLOT(ItemOpen(int64_t,bool)));
-    connect(mItemExplore, SIGNAL(AddParent(int64_t)), this, SLOT(AddParent(int64_t)));
-    connect(mItemExplore, SIGNAL(ItemCloseCurrent(bool)), this, SLOT(ItemCloseCurrent(bool)));
-    connect(mItemExplore, SIGNAL(ItemOpenNew(bool)), this, SLOT(ItemOpenNew(bool)));
-    connect(mItemExplore, SIGNAL(ItemDeleteCurrent(bool)), this, SLOT(ItemDeleteCurrent(bool)));
-    connect(mItemExplore, SIGNAL(ItemSwitchTabs()), this, SLOT(ItemSwitchTabs()));
+    // Initialize the main item explorer dialog.
+    mItemExplorer = new ItemExplorer("ExplorerMain", ItemExplorer::ExplorerType::Main, mData, this);
+    mItemExplorer->setFont(this->font());
+    mItemExplorer->setWindowTitle("Needs explorer");
+    connect(mItemExplorer, SIGNAL(ItemOpen(int64_t,bool)), this, SLOT(ItemOpen(int64_t,bool)));
+    connect(mItemExplorer, SIGNAL(AddParent()), this, SLOT(AddParent()));
+    connect(mItemExplorer, SIGNAL(ItemCloseCurrent(bool)), this, SLOT(ItemCloseCurrent(bool)));
+    connect(mItemExplorer, SIGNAL(ItemOpenNew(bool)), this, SLOT(ItemOpenNew(bool)));
+    connect(mItemExplorer, SIGNAL(ItemDeleteCurrent(bool)), this, SLOT(ItemDeleteCurrent(bool)));
+    connect(mItemExplorer, SIGNAL(ItemSwitchTabs()), this, SLOT(ItemSwitchTabs()));
+    connect(mItemExplorer, SIGNAL(ShowMain()), this, SLOT(ItemExplorerShow()));
+    connect(mItemExplorer, SIGNAL(ShowUnassigned()), this, SLOT(ItemExplorerUnassignedShow()));
+    
+    // Initialize the item explorer for unassigned items.
+    mItemExplorerUnassigned = new ItemExplorer("ExplorerUnassigned", ItemExplorer::ExplorerType::Unassigned, mData, this);
+    mItemExplorerUnassigned->setFont(this->font());
+    mItemExplorerUnassigned->setWindowTitle("Unassigned needs");
+    connect(mItemExplorerUnassigned, SIGNAL(ItemOpen(int64_t,bool)), this, SLOT(ItemOpen(int64_t,bool)));
+    connect(mItemExplorerUnassigned, SIGNAL(AddParent()), this, SLOT(AddParent()));
+    connect(mItemExplorerUnassigned, SIGNAL(ItemCloseCurrent(bool)), this, SLOT(ItemCloseCurrent(bool)));
+    connect(mItemExplorerUnassigned, SIGNAL(ItemOpenNew(bool)), this, SLOT(ItemOpenNew(bool)));
+    connect(mItemExplorerUnassigned, SIGNAL(ItemDeleteCurrent(bool)), this, SLOT(ItemDeleteCurrent(bool)));
+    connect(mItemExplorerUnassigned, SIGNAL(ItemSwitchTabs()), this, SLOT(ItemSwitchTabs()));
+    connect(mItemExplorerUnassigned, SIGNAL(ShowMain()), this, SLOT(ItemExplorerShow()));
+    connect(mItemExplorerUnassigned, SIGNAL(ShowUnassigned()), this, SLOT(ItemExplorerUnassignedShow()));
+    
+    // Initialize the unassigned item explorer dialog.
     
     // Restore the last positions of our windows.
     QSettings settings("PlayfulPatterns", "Azharja");
@@ -141,6 +163,7 @@ void MainWindow::ItemOpen(int64_t itemID, bool grabFocus)
     // Create new item widget.
     auto newItem = new ItemWidget(mData[itemID], this->font());
     connect(newItem, SIGNAL(ItemDeleted()), this, SLOT(ItemDeleted()));
+    connect(newItem, SIGNAL(NeedChanged()), this, SLOT(NeedChanged()));
     ItemOpen(newItem, grabFocus);
 }
 
@@ -155,7 +178,12 @@ void MainWindow::ItemOpenNew(bool grabFocus)
     // Create new item.
     auto newItem = new ItemWidget(mData.CreateNewItem(), this->font());
     connect(newItem, SIGNAL(ItemDeleted()), this, SLOT(ItemDeleted()));
+    connect(newItem, SIGNAL(NeedChanged()), this, SLOT(NeedChanged()));
     ItemOpen(newItem, grabFocus);
+    if (mItemExplorer)
+        mItemExplorer->RefreshAfterMaxOneItemDifference();
+    if (mItemExplorerUnassigned)
+        mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }
 
 void MainWindow::ItemOpen(ItemWidget* itemWidget, bool grabFocus)
@@ -209,10 +237,9 @@ void MainWindow::ItemParentsUpdate()
     auto itemID = mItemsOpen.last()->ItemID();
     if (itemID >= 0)
     {
-        auto& item = mData[itemID];
-        for (auto parentID: item.Parents())
-            if (parentID != Data::GetItemTop())
-                mItemParents->mList->addItem(mData[parentID].Need());
+        auto parents = mData[itemID].Parents();
+        for (auto parentID: parents)
+            mItemParents->mList->addItem(mData[parentID].Need());
     }
 }
 
@@ -258,10 +285,38 @@ ItemWidget* MainWindow::ItemFindEmpty()
     return found == mItemsOpen.end() ? nullptr : *found;
 }
 
-void MainWindow::ItemExploreShow()
+void MainWindow::ItemExplorerShow()
 {
-    mItemExplore->show();
-    mItemExplore->activateWindow();
+    if (mItemExplorer->isVisible())
+    {
+        if (mItemExplorer->isActiveWindow())
+            this->activateWindow();
+        else
+            mItemExplorer->activateWindow();
+    }
+    else
+    {
+        mItemExplorer->show();
+        mItemExplorer->activateWindow();
+        mItemExplorerUnassigned->hide();
+    }
+}
+
+void MainWindow::ItemExplorerUnassignedShow()
+{
+    if (mItemExplorerUnassigned->isVisible())
+    {
+        if (mItemExplorerUnassigned->isActiveWindow())
+            this->activateWindow();
+        else
+            mItemExplorerUnassigned->activateWindow();
+    }
+    else
+    {
+        mItemExplorerUnassigned->show();
+        mItemExplorerUnassigned->activateWindow();
+        mItemExplorer->hide();
+    }
 }
 
 void MainWindow::ItemParentsShow()
@@ -285,27 +340,27 @@ void MainWindow::ParentDelete()
         return;
     
     auto& item = mData[mItemsOpen.last()->ItemID()];
-    item.RemoveParent(item.Parents()[idx]);
+    auto parents = item.Parents();
+    item.RemoveParent(parents[idx]);
     ItemParentsUpdate();
     
     // Update the items in explorer.
-    mItemExplore->RefreshAfterMaxOneItemDifference();
+    mItemExplorer->RefreshAfterMaxOneItemDifference();
+    mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }
 
-void MainWindow::AddParent(int64_t itemParentID)
+void MainWindow::AddParent()
 {
-    if (mItemsOpen.empty())
-        return;
+    // Show dialog which allows the selection of a parent.
     
-    if (mItemsOpen.last()->ItemID() < 0)
-        return;
     
-    auto& item = mData[mItemsOpen.last()->ItemID()];
-    item.AddParent(itemParentID);
-    ItemParentsUpdate();
+//    auto& item = mData[mItemsOpen.last()->ItemID()];
+//    item.AddParent(itemParentID);
+//    ItemParentsUpdate();
     
     // Update the items in explorer.
-    mItemExplore->RefreshAfterMaxOneItemDifference();
+    mItemExplorer->RefreshAfterMaxOneItemDifference();
+    mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }
 
 void MainWindow::ItemCurrentFocus()
@@ -319,7 +374,8 @@ void MainWindow::ItemCurrentFocus()
 
 void MainWindow::CloseExtraWindows()
 {
-    mItemExplore->hide();
+    mItemExplorer->hide();
+    mItemExplorerUnassigned->hide();
     mSplitterMain->replaceWidget(1, new QWidget()); // Hide the list of parents.
 }
 
@@ -331,8 +387,9 @@ void MainWindow::SaveToMemoryTry(QPrivateSignal)
 
 void MainWindow::ItemDeleted()
 {
-    // Update the items in explorer.
-    mItemExplore->RefreshAfterMaxOneItemDifference();
+    // Update the items in explorers.
+    mItemExplorer->RefreshAfterMaxOneItemDifference();
+    mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }
 
 void MainWindow::ItemOpenNew()
@@ -381,4 +438,10 @@ void MainWindow::ItemSwitchTabs()
         return;
     
     mItemsOpen.last()->SwitchTabs();
+}
+
+void MainWindow::NeedChanged()
+{
+    mItemExplorer->RefreshAfterMaxOneItemDifference();
+    mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }

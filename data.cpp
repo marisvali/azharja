@@ -2,7 +2,7 @@
 #include <QFile>
 #include <QXmlStreamReader>
 #include <QDir>
-#include <savedatathread.h>
+#include <datasavethread.h>
 
 class DataOld
 {
@@ -184,9 +184,6 @@ void Data::LoadFromDiskOld()
         
         for (auto& tagParent: itemOld.mTags)
             item->mParentsIDs.push_back(itemsTags[tagParent]);
-        
-        if (item->mParentsIDs.size() == 0)
-            item->mParentsIDs.push_back(Data::GetItemTop());
     }
     
     AfterLoad();
@@ -202,7 +199,7 @@ void Data::AfterLoad()
     for (auto& item: mItems)
     {
         // Create parent -> child connections.
-        for (auto parent: item->Parents())
+        for (auto parent: item->mParentsIDs)
             mItems[parent]->mChildrenIDs.push_back(item->ID());
         
         // Get the current maximum ID.
@@ -210,7 +207,7 @@ void Data::AfterLoad()
             mCurrentMaxID = item->ID();
     }
     
-    mSaveDataThread = new SaveDataThread(*this);
+    mSaveDataThread = new DataSaveThread(*this);
     connect(mSaveDataThread, SIGNAL(finished()), this, SIGNAL(DoneWithLastSave()));
     mSaveDataThread->start();
 }
@@ -238,11 +235,11 @@ void Data::DeleteItem(int64_t itemID)
     QMutexLocker lock(&mMutexSave);
     
     auto item = mItems[itemID];
-    if (item->Children().size() > 0)
+    if (item->NrChildren() > 0)
         return;
 
     // Remove all parents at once instead of having them be removed automaticallyone by one by RemoveChild;
-    QVector<int64_t> parents = item->Parents();
+    auto parents = item->mParentsIDs;
     item->mParentsIDs.clear();
     
     // Remove the item as a child from its parents.

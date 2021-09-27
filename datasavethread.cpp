@@ -1,6 +1,6 @@
-#include "savedatathread.h"
+#include "datasavethread.h"
 
-void SaveDataThread::run()
+void DataSaveThread::run()
 {
     while (true)
     {

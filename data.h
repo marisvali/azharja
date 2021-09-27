@@ -11,7 +11,7 @@
 #include <item.h>
 #include <map>
 
-class SaveDataThread; // Foward declaration.
+class DataSaveThread; // Foward declaration.
 
 class Data : public QObject
 {
@@ -30,7 +30,7 @@ public:
     void LoadFromDisk();
     void SaveToDisk();
     void LoadFromDiskOld();
-    const QHash<int64_t, Item>& Items();
+    const QMap<int64_t, Item*>& Items() { return mItems; }
     Item& operator[](int64_t itemID) { return *mItems[itemID]; }
     Item& CreateNewItem();
     void DeleteItem(int64_t itemID);
@@ -48,7 +48,7 @@ protected:
     int64_t mCurrentMaxID = -1;
     QMap<int64_t, Item*> mItems;
     QSet<int64_t> mItemsDirty;
-    SaveDataThread* mSaveDataThread = nullptr;
+    DataSaveThread* mSaveDataThread = nullptr;
     QMutex mMutexDirty;
     QMutex mMutexSave;
     

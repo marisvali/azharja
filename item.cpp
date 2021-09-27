@@ -14,31 +14,31 @@ public:
   bool isLocked() const { return mLocked; }
 };
 
-int64_t Item::ID()
+int64_t Item::ID() const
 {
     QMutexLocker lock(&mMutexMeta);
     return mID;
 }
 
-const QString Item::Need()
+const QString Item::Need() const
 { 
     QMutexLocker lock(&mMutexMeta);
     return mNeed;
 }
 
-const QString Item::Journal()
+const QString Item::Journal() const
 {
     QMutexLocker lock(&mMutexJournal);
     return mJournal;
 }
 
-const QString Item::Answer()
+const QString Item::Answer() const
 {
     QMutexLocker lock(&mMutexAnswer);
     return mAnswer;
 }
 
-bool Item::Solved()
+bool Item::Solved() const
 { 
     QMutexLocker lock(&mMutexMeta);
     return mSolved;
@@ -206,12 +206,36 @@ void Item::DeleteFromDisk(QString path, int64_t id)
     QFile::remove(pathAnswer);
 }
 
-bool Item::IsEmpty()
+bool Item::IsEmpty() const
 {
     QMutexLocker lock1(&mMutexMeta);
     QMutexLocker lock2(&mMutexJournal);
     QMutexLocker lock3(&mMutexAnswer);
     return mNeed == "" && mJournal == "" && mAnswer == "";
+}
+
+QVector<int64_t> Item::Children() const
+{
+    QMutexLocker lock(&mMutexMeta);
+    return mChildrenIDs;
+}
+
+int Item::NrChildren() const
+{
+    QMutexLocker lock(&mMutexMeta);
+    return mChildrenIDs.size();
+}
+
+QVector<int64_t> Item::Parents() const
+{
+    QMutexLocker lock(&mMutexMeta);
+    return mParentsIDs;
+}
+
+int Item::NrParents() const
+{
+    QMutexLocker lock(&mMutexMeta);
+    return mParentsIDs.size();
 }
 
 void Item::AddParent(int64_t parentID)
@@ -226,9 +250,6 @@ void Item::AddParent(int64_t parentID)
     mDirtyMeta = true;
     mData.SetDirty(mID);
     
-    // Remove the top item as a parent.
-    RemoveParent(Data::GetItemTop());
-    
     // Add this item as a child to new parent.
     mData[parentID].AddChild(mID);
 }
@@ -242,10 +263,6 @@ void Item::RemoveParent(int64_t parentID)
     
     mDirtyMeta = true;
     mData.SetDirty(mID);
-    
-    // Add the top item as a parent if no other parents are left.
-    if (mParentsIDs.size() == 0)
-        this->AddParent(Data::GetItemTop());
     
     mData[parentID].RemoveChild(mID);
 }

@@ -4,12 +4,12 @@
 #include <QThread>
 #include <data.h>
 
-class SaveDataThread : public QThread
+class DataSaveThread : public QThread
 {
     Q_OBJECT
     
 public:
-    SaveDataThread(Data& data): mData(data) {}
+    DataSaveThread(Data& data): mData(data) {}
     void Stop() { mDone = true; }
     
 protected:

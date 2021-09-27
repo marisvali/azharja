@@ -10,23 +10,23 @@ CONFIG += c++11
 
 SOURCES += \
     data.cpp \
+    datasavethread.cpp \
     item.cpp \
     itemexplorer.cpp \
     itemparentswidget.cpp \
     itemwidget.cpp \
     main.cpp \
     mainwindow.cpp \
-    savedatathread.cpp \
     scintillaeditcustom.cpp
 
 HEADERS += \
     data.h \
+    datasavethread.h \
     item.h \
     itemexplorer.h \
     itemparentswidget.h \
     itemwidget.h \
     mainwindow.h \
-    savedatathread.h \
     scintillaeditcustom.h
 
 FORMS += \

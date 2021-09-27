@@ -25,7 +25,8 @@ protected:
     Data mData;
     QSplitter* mSplitterMain = nullptr;
     QVector<ItemWidget*> mItemsOpen;
-    ItemExplorer* mItemExplore;
+    ItemExplorer* mItemExplorer = nullptr;
+    ItemExplorer* mItemExplorerUnassigned = nullptr;
     ItemParentsWidget* mItemParents = nullptr;
     QMessageBox* mWaitForSave = nullptr;
     QTimer* mTimerSaveToMemory;
@@ -42,11 +43,12 @@ protected:
 private slots:
     void ItemCloseCurrent();
     void ItemCloseCurrent(bool grabFocus);
-    void ItemExploreShow();
+    void ItemExplorerShow();
+    void ItemExplorerUnassignedShow();
     void ItemOpen(int64_t itemID, bool grabFocus = true);
     void ItemParentsShow();
     void ParentDelete();
-    void AddParent(int64_t itemID);
+    void AddParent();
     void ItemCurrentFocus();
     void CloseExtraWindows();
     void SaveToMemoryTry(QPrivateSignal);
@@ -57,6 +59,7 @@ private slots:
     void ItemDeleteCurrent();
     void ItemDeleteCurrent(bool grabFocus);
     void ItemSwitchTabs();
+    void NeedChanged();
     
 private:
     Ui::MainWindow *mUI;

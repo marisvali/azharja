@@ -112,7 +112,10 @@ bool ItemWidget::SaveToMemoryTry()
 {
     if (mDirtyNeed)
         if (mItem.SetNeed(mNeed->text()))
+        {
             mDirtyNeed = false;
+            emit NeedChanged();
+        }
     
     if (mDirtyJournal)
         if (mItem.SetJournal(mJournal->getText(mAnswer->length() + 1)))

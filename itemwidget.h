@@ -28,6 +28,7 @@ public:
     
 signals:
     void ItemDeleted();
+    void NeedChanged();
 
 protected:
     QTabWidget* mJournalAnswer;

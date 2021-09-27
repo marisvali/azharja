@@ -10,34 +10,45 @@ class ItemExplorer : public QDialog
     Q_OBJECT
     
 public:
-    explicit ItemExplorer(Data& data, QWidget *parent = nullptr);
+    enum ExplorerType
+    {
+        Main,
+        Unassigned,
+        Search
+    };
+    
+    explicit ItemExplorer(QString name, ExplorerType type, Data& data, QWidget *parent = nullptr);
     void RefreshAfterMaxOneItemDifference();
     
 signals:
     void ItemOpen(int64_t itemID, bool grabFocus);
     void ItemCloseCurrent(bool grabFocus);
-    void AddParent(int64_t itemID);
+    void AddParent();
     void ItemOpenNew(bool grabFocus);
     void ItemDeleteCurrent(bool grabFocus);
     void ItemSwitchTabs();
+    void ShowMain();
+    void ShowUnassigned();
     
 protected:
     QListWidget* mItemList = nullptr;
-    int64_t mItemCurrentID = -1;
+    int64_t mItemIDCurrent = -1;
+    QVector<int64_t> mItemIDs;
     Data& mData;
+    ExplorerType mType;
+    QString mName;
     
     void closeEvent(QCloseEvent* event);
     int64_t ItemIDSelected();
     void ItemListUpdate(int64_t itemID);
+    void UpdateCurrentIDs();
 
 protected slots:
     void ItemDoubleClicked(QListWidgetItem *item); 
     void ItemEnter();
-    void AddParentSlot();
     void ItemPreview();
     void ItemPreviewClose();
     void ItemOpenNewSlot();
-    void FocusMainWindow();
     void ItemDeleteCurrentSlot();
 };
 

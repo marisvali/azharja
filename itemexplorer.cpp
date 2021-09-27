@@ -4,28 +4,40 @@
 #include <QShortcut>
 #include <QMainWindow>
 
-ItemExplorer::ItemExplorer(Data& data, QWidget *parent) : QDialog(parent), mData(data)
+ItemExplorer::ItemExplorer(QString name, ExplorerType type, Data& data, QWidget *parent): 
+    QDialog(parent), mData(data), mType(type), mName(name)
 {
+    QSettings settings("PlayfulPatterns", "Azharja");
+    
+    setWindowFlag(Qt::WindowMinimizeButtonHint, true);
+    setWindowFlag(Qt::WindowMaximizeButtonHint, true);
+
     QGridLayout* layout = new QGridLayout(this);
     mItemList = new QListWidget();
+    mItemList->setWordWrap(true);
     layout->addWidget(mItemList);
     connect(mItemList, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(ItemDoubleClicked(QListWidgetItem*)));
     
-    // Add new tab when right clicking the item list.
+    // Open the item when right clicking the item list.
     // I use the custom context menu because the context menu is what is triggered on right click.
     mItemList->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(mItemList, &QListView::customContextMenuRequested, [this](QPoint){
         emit ItemOpen(ItemIDSelected(), true);
     });
+
+    if (mType == ExplorerType::Main || mType == ExplorerType::Search)
+    {
+        if (settings.contains(mName + "/StartItem"))
+            mItemIDCurrent = settings.value(mName + "/StartItem").toLongLong();
+        else
+            mItemIDCurrent = mData.GetItemTop();
+    }
+            
+    ItemListUpdate(mItemIDCurrent);
     
-    ItemListUpdate(mData.GetItemTop());
-    
-    // Add shortcut.
+    // Add shortcuts.
     auto returnKey = new QShortcut(QKeySequence(Qt::Key_Return), this);
     connect(returnKey, SIGNAL(activated()), this, SLOT(ItemEnter()));
-    
-    auto ctrlP = new QShortcut(QKeySequence("Ctrl+p"), this);
-    connect(ctrlP, SIGNAL(activated()), this, SLOT(AddParentSlot()));
     
     auto right = new QShortcut(QKeySequence(Qt::Key_Right), this);
     connect(right, SIGNAL(activated()), this, SLOT(ItemPreview()));
@@ -33,8 +45,11 @@ ItemExplorer::ItemExplorer(Data& data, QWidget *parent) : QDialog(parent), mData
     auto left = new QShortcut(QKeySequence(Qt::Key_Left), this);
     connect(left, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));
     
+    auto f3 = new QShortcut(QKeySequence(Qt::Key_F3), this);
+    connect(f3, SIGNAL(activated()), this, SIGNAL(ShowMain()));
+    
     auto f4 = new QShortcut(QKeySequence(Qt::Key_F4), this);
-    connect(f4, SIGNAL(activated()), this, SLOT(FocusMainWindow()));
+    connect(f4, SIGNAL(activated()), this, SIGNAL(ShowUnassigned()));
     
     auto ctrlTab = new QShortcut(QKeySequence("Ctrl+Tab"), this);
     connect(ctrlTab, SIGNAL(activated()), this, SIGNAL(ItemSwitchTabs()));
@@ -44,52 +59,52 @@ ItemExplorer::ItemExplorer(Data& data, QWidget *parent) : QDialog(parent), mData
     connect(ctrlW, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));
     
     auto ctrlN = new QShortcut(QKeySequence("Ctrl+n"), this);
-    connect(ctrlN, SIGNAL(activated()), this, SLOT(ItemOpenNew()));
+    connect(ctrlN, SIGNAL(activated()), this, SLOT(ItemOpenNewSlot()));
     
     auto altP = new QShortcut(QKeySequence("Alt+p"), this);
     connect(altP, SIGNAL(activated()), parent, SLOT(ItemParentsShow()));
+    
+    auto ctrlP = new QShortcut(QKeySequence("Ctrl+p"), this);
+    connect(ctrlP, SIGNAL(activated()), this, SIGNAL(AddParent()));
     
     auto esc = new QShortcut(QKeySequence("Esc"), this);
     connect(esc, SIGNAL(activated()), parent, SLOT(CloseExtraWindows()));
     
     auto shiftDel = new QShortcut(QKeySequence("Shift+Del"), this);
-    connect(shiftDel, SIGNAL(activated()), this, SLOT(ItemDeleteCurrent()));
+    connect(shiftDel, SIGNAL(activated()), this, SLOT(ItemDeleteCurrentSlot()));
     
     // Restore window position.
-    QSettings settings("PlayfulPatterns", "Azharja");
-    restoreGeometry(settings.value("DlgItemExplore/Geometry").toByteArray());
+    restoreGeometry(settings.value(mName + "/Geometry").toByteArray());
 }
 
 void ItemExplorer::closeEvent(QCloseEvent* event)
 {
     QSettings settings("PlayfulPatterns", "Azharja");
-    settings.setValue("DlgItemExplore/Geometry", saveGeometry());
+    settings.setValue(mName + "/Geometry", saveGeometry());
+    settings.setValue(mName + "/StartItem", mItemIDCurrent);
     QDialog::closeEvent(event);
 }
 
 int64_t ItemExplorer::ItemIDSelected()
 {
-    int row = mItemList->currentRow();
-    auto& item = mData[mItemCurrentID];
-    
-    if (row < item.Parents().size())
-        return item.Parents()[row];
-    
-    if (row == item.Parents().size())
-        return item.ID();
-    
-    if (row > item.Parents().size())
-        return item.Children()[row - item.Parents().size() - 1];
-    
-    return -1;
+    if (mItemList->currentRow() >= 0)
+        return mItemIDs[mItemList->currentRow()];
+    else
+        return -1;
 }
 
 QString ItemWidgetName(Item& item)
 {
-    if (item.Children().size() > 0)
+    if (item.NrChildren() > 0)
         return "[" + item.Need() + "]";
     else
-        return item.Need();
+    {
+        auto need = item.Need();
+        if (need == "")
+            return "Untitled";
+        else
+            return need;
+    }
 }
 
 QListWidgetItem* ItemToWidget(Item& item)
@@ -102,31 +117,41 @@ QListWidgetItem* ItemToWidget(Item& item)
     return itemWidget;
 }
 
-void ItemExplorer::ItemListUpdate(int64_t itemID)
+void ItemExplorer::ItemListUpdate(int64_t itemIDToExplore)
 {
-    auto& item = mData[itemID];
-    
-    mItemList->clear();
-    
-    for (auto parentID: item.Parents())
-        mItemList->addItem(ItemToWidget(mData[parentID]));
-    
-    auto widget = ItemToWidget(item);
-    auto font = widget->font();
-    font.setBold(true);
-    widget->setFont(font);
-    mItemList->addItem(widget);
-    
-    for (auto childID: item.Children())
-        mItemList->addItem(ItemToWidget(mData[childID]));
-    
-    int idxItemCurrent = item.Parents().indexOf(mItemCurrentID);
-    if (idxItemCurrent < 0)
-        idxItemCurrent = item.Parents().size() + 1 + item.Children().indexOf(mItemCurrentID);
-    mItemList->scrollToItem(mItemList->item(idxItemCurrent), QAbstractItemView::PositionAtCenter);
-    mItemList->setCurrentRow(idxItemCurrent);
-    
-    mItemCurrentID = itemID;
+    if (mType == ExplorerType::Main || mType == ExplorerType::Search)
+    {
+        auto itemIDOld = mItemIDCurrent;
+        mItemIDCurrent = itemIDToExplore;
+        auto& item = mData[mItemIDCurrent];
+        
+        UpdateCurrentIDs();
+        
+        mItemList->clear();
+        
+        for (auto itemID: mItemIDs)
+            if (itemID == mItemIDCurrent)
+            {
+                auto widget = ItemToWidget(item);
+                auto font = widget->font();
+                font.setBold(true);
+                widget->setFont(font);
+                mItemList->addItem(widget);
+            }
+            else
+                mItemList->addItem(ItemToWidget(mData[itemID]));
+        
+        int idxItemOld = mItemIDs.indexOf(itemIDOld);
+        mItemList->scrollToItem(mItemList->item(idxItemOld), QAbstractItemView::PositionAtCenter);
+        mItemList->setCurrentRow(idxItemOld);
+    }
+    else
+    {
+        UpdateCurrentIDs();
+        
+        for (auto itemID: mItemIDs)
+            mItemList->addItem(ItemToWidget(mData[itemID]));
+    }
 }
 
 void ItemExplorer::ItemDoubleClicked(QListWidgetItem*)
@@ -136,14 +161,25 @@ void ItemExplorer::ItemDoubleClicked(QListWidgetItem*)
 
 void ItemExplorer::ItemEnter()
 {
-    auto itemID = ItemIDSelected();
-    if (mData[itemID].Children().size() == 0)
+    if (mType == ExplorerType::Main || mType == ExplorerType::Search)
     {
-        emit ItemOpen(itemID, true);
-        hide();
+        auto itemID = ItemIDSelected();
+        if (mData[itemID].NrChildren() == 0)
+        {
+            emit ItemOpen(itemID, true);
+            hide();
+        }
+        else
+            ItemListUpdate(itemID);
     }
-    else
-        ItemListUpdate(itemID);
+    else if (mType == ExplorerType::Unassigned)
+    {
+        if (mItemList->currentRow() >= 0)
+        {
+            emit ItemOpen(mItemIDs[mItemList->currentRow()], true);
+            hide();
+        }
+    }
 }
 
 void ItemExplorer::ItemPreview()
@@ -156,42 +192,54 @@ void ItemExplorer::ItemPreviewClose()
     emit ItemCloseCurrent(false);
 }
 
-void ItemExplorer::AddParentSlot()
+void ItemExplorer::UpdateCurrentIDs()
 {
-    auto itemID = ItemIDSelected();
-    if (itemID >= 0)
-        emit AddParent(itemID);
+    mItemIDs.clear();
+    if (mType == ExplorerType::Main || mType == ExplorerType::Search)
+    {
+        auto& item = mData[mItemIDCurrent];
+        auto parents = item.Parents();
+        for (auto parentID: parents)
+            mItemIDs.push_back(parentID);
+        mItemIDs.push_back(mItemIDCurrent);
+        auto children = item.Children();
+        for (auto childID: children)
+            mItemIDs.push_back(childID);
+    }
+    else if (mType == ExplorerType::Unassigned)
+    {
+        for (auto item: mData.Items())
+            if (item->NrParents() == 0 && item->ID() != Data::GetItemTop())
+                mItemIDs.push_back(item->ID());
+    }
 }
 
 void ItemExplorer::RefreshAfterMaxOneItemDifference()
 {
-    auto& item = mData[mItemCurrentID];
-    
     QVector<QString> listPrev;
     for (int idx = 0; idx < mItemList->count(); ++idx)
         listPrev.push_back(mItemList->item(idx)->text());
-    
-    QVector<int64_t> listNowIDs;
-    for (auto parentID: item.Parents())
-        listNowIDs.push_back(parentID);
-    listNowIDs.push_back(mItemCurrentID);
-    for (auto childID: item.Children())
-        listNowIDs.push_back(childID);
+ 
+    UpdateCurrentIDs();
     
     QVector<QString> listNow;
-    for (auto id: listNowIDs)
+    for (auto id: mItemIDs)
         listNow.push_back(ItemWidgetName(mData[id]));
     
-    // Check if we could be in the case that the item just became childless.
-    // In this case there are 2 changes happening to the list:
-    // - the name of the current item loses the brackets []
-    // - the last child disappeared
-    // In this case just update the whole item and lose the current row selection and the scroll position. I assume this won't be a common or big inconvenience.
-    if (item.Children().size() == 0 &&
-        listPrev.size() > listNow.size())
+    if (mType == ExplorerType::Main || mType == ExplorerType::Search)
     {
-        ItemListUpdate(mItemCurrentID);
-        return;
+        // Check if we could be in the case that the item just became childless.
+        // In this case there are 2 changes happening to the list:
+        // - the name of the current item loses the brackets []
+        // - the last child disappeared
+        // In this case just update the whole item and lose the current row selection and the scroll position. I assume this won't be a common or big inconvenience.
+        
+        if (mData[mItemIDCurrent].NrChildren() == 0 &&
+                listPrev.size() > listNow.size())
+        {
+            ItemListUpdate(mItemIDCurrent);
+            return;
+        }
     }
     
     // Synchronize mItemList so that it contains listNow.
@@ -214,25 +262,20 @@ void ItemExplorer::RefreshAfterMaxOneItemDifference()
     {
         // An item was changed from listPrev to listNow, namely the idx item.
         delete mItemList->takeItem(idx);
-        mItemList->insertItem(idx, ItemToWidget(mData[listNowIDs[idx]]));
+        mItemList->insertItem(idx, ItemToWidget(mData[mItemIDs[idx]]));
         if (mItemList->currentRow() > 0)
             mItemList->setCurrentRow(mItemList->currentRow() - 1);
     }
     else
     {
         // An item was added to listNow, namely listNow[idx].
-        mItemList->insertItem(idx, ItemToWidget(mData[listNowIDs[idx]]));
+        mItemList->insertItem(idx, ItemToWidget(mData[mItemIDs[idx]]));
     }
 }
 
 void ItemExplorer::ItemOpenNewSlot()
 {
     emit ItemOpenNew(false);
-}
-
-void ItemExplorer::FocusMainWindow()
-{
-    dynamic_cast<QMainWindow*>(parent())->activateWindow();
 }
 
 void ItemExplorer::ItemDeleteCurrentSlot()
