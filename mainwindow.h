@@ -4,7 +4,7 @@
 #include <QMainWindow>
 #include <data.h>
 #include <QSplitter>
-#include <dlgitemexplore.h>
+#include <itemexplorer.h>
 #include <itemwidget.h>
 #include <itemparentswidget.h>
 #include <QMessageBox>
@@ -25,7 +25,7 @@ protected:
     Data mData;
     QSplitter* mSplitterMain = nullptr;
     QVector<ItemWidget*> mItemsOpen;
-    DlgItemExplore* mItemExplore;
+    ItemExplorer* mItemExplore;
     ItemParentsWidget* mItemParents = nullptr;
     QMessageBox* mWaitForSave = nullptr;
     QTimer* mTimerSaveToMemory;

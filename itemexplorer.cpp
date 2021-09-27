@@ -1,10 +1,10 @@
-#include "dlgitemexplore.h"
+#include "itemexplorer.h"
 #include <QSettings>
 #include <QGridLayout>
 #include <QShortcut>
 #include <QMainWindow>
 
-DlgItemExplore::DlgItemExplore(Data& data, QWidget *parent) : QDialog(parent), mData(data)
+ItemExplorer::ItemExplorer(Data& data, QWidget *parent) : QDialog(parent), mData(data)
 {
     QGridLayout* layout = new QGridLayout(this);
     mItemList = new QListWidget();
@@ -60,14 +60,14 @@ DlgItemExplore::DlgItemExplore(Data& data, QWidget *parent) : QDialog(parent), m
     restoreGeometry(settings.value("DlgItemExplore/Geometry").toByteArray());
 }
 
-void DlgItemExplore::closeEvent(QCloseEvent* event)
+void ItemExplorer::closeEvent(QCloseEvent* event)
 {
     QSettings settings("PlayfulPatterns", "Azharja");
     settings.setValue("DlgItemExplore/Geometry", saveGeometry());
     QDialog::closeEvent(event);
 }
 
-int64_t DlgItemExplore::ItemIDSelected()
+int64_t ItemExplorer::ItemIDSelected()
 {
     int row = mItemList->currentRow();
     auto& item = mData[mItemCurrentID];
@@ -102,7 +102,7 @@ QListWidgetItem* ItemToWidget(Item& item)
     return itemWidget;
 }
 
-void DlgItemExplore::ItemListUpdate(int64_t itemID)
+void ItemExplorer::ItemListUpdate(int64_t itemID)
 {
     auto& item = mData[itemID];
     
@@ -129,12 +129,12 @@ void DlgItemExplore::ItemListUpdate(int64_t itemID)
     mItemCurrentID = itemID;
 }
 
-void DlgItemExplore::ItemDoubleClicked(QListWidgetItem*)
+void ItemExplorer::ItemDoubleClicked(QListWidgetItem*)
 {
     ItemEnter();
 }
 
-void DlgItemExplore::ItemEnter()
+void ItemExplorer::ItemEnter()
 {
     auto itemID = ItemIDSelected();
     if (mData[itemID].Children().size() == 0)
@@ -146,24 +146,24 @@ void DlgItemExplore::ItemEnter()
         ItemListUpdate(itemID);
 }
 
-void DlgItemExplore::ItemPreview()
+void ItemExplorer::ItemPreview()
 {
     emit ItemOpen(ItemIDSelected(), false);
 }
 
-void DlgItemExplore::ItemPreviewClose()
+void ItemExplorer::ItemPreviewClose()
 {
     emit ItemCloseCurrent(false);
 }
 
-void DlgItemExplore::AddParentSlot()
+void ItemExplorer::AddParentSlot()
 {
     auto itemID = ItemIDSelected();
     if (itemID >= 0)
         emit AddParent(itemID);
 }
 
-void DlgItemExplore::RefreshAfterMaxOneItemDifference()
+void ItemExplorer::RefreshAfterMaxOneItemDifference()
 {
     auto& item = mData[mItemCurrentID];
     
@@ -225,17 +225,17 @@ void DlgItemExplore::RefreshAfterMaxOneItemDifference()
     }
 }
 
-void DlgItemExplore::ItemOpenNew()
+void ItemExplorer::ItemOpenNewSlot()
 {
     emit ItemOpenNew(false);
 }
 
-void DlgItemExplore::FocusMainWindow()
+void ItemExplorer::FocusMainWindow()
 {
     dynamic_cast<QMainWindow*>(parent())->activateWindow();
 }
 
-void DlgItemExplore::ItemDeleteCurrent()
+void ItemExplorer::ItemDeleteCurrentSlot()
 {
     emit ItemDeleteCurrent(false);
 }

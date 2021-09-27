@@ -60,7 +60,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(shiftDel, SIGNAL(activated()), this, SLOT(ItemDeleteCurrent()));
     
     // Initialize the item explorer dialog.
-    mItemExplore = new DlgItemExplore(mData, this);
+    mItemExplore = new ItemExplorer(mData, this);
     mItemExplore->setFont(this->font());
     connect(mItemExplore, SIGNAL(ItemOpen(int64_t,bool)), this, SLOT(ItemOpen(int64_t,bool)));
     connect(mItemExplore, SIGNAL(AddParent(int64_t)), this, SLOT(AddParent(int64_t)));
