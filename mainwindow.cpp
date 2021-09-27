@@ -21,8 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     mUI->setupUi(this);
     
-    //mData.LoadFromDisk();
-    mData.LoadFromDiskOld();
+    mData.LoadFromDisk();
     connect(&mData, SIGNAL(DoneWithLastSave()), this, SLOT(DoneWithLastSave()));
     
     mSplitterMain = new QSplitter();
@@ -356,23 +355,34 @@ void MainWindow::AddParent()
 {
     if (mItemsOpen.isEmpty())
         return;
-        
+    
+    bool activeMain = this->isActiveWindow();
+    bool activeExplorer = mItemExplorer->isActiveWindow();
+    bool activeUnassigned = mItemExplorerUnassigned->isActiveWindow();
+    
     // Show dialog which allows the selection of a parent.
     auto search = new ItemExplorer("ExplorerSearch", ItemExplorer::ExplorerType::Search, mData, this);
     search->setFont(this->font());
     search->setWindowTitle("Search need");
-    if (search->exec() == QDialog::Rejected)
-        return;
+    if (search->exec() == QDialog::Accepted)
+    {
+        auto& item = mData[mItemsOpen.last()->ItemID()];
+        item.AddParent(search->GetSelectedID());
+        ItemParentsUpdate();
+        
+        delete search;
+        
+        // Update the items in explorers.
+        mItemExplorer->RefreshAfterMaxOneItemDifference();
+        mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
+    }
     
-    auto& item = mData[mItemsOpen.last()->ItemID()];
-    item.AddParent(search->GetSelectedID());
-    ItemParentsUpdate();
-    
-    delete search;
-    
-    // Update the items in explorers.
-    mItemExplorer->RefreshAfterMaxOneItemDifference();
-    mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
+    if (activeMain)
+        mSplitterMain->setFocus();
+    if (activeExplorer)
+        mItemExplorer->activateWindow();
+    if (activeUnassigned)
+        mItemExplorerUnassigned->activateWindow();
 }
 
 void MainWindow::ItemCurrentFocus()

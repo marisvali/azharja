@@ -47,3 +47,10 @@ INCLUDEPATH += $$PWD/../scite511/scintilla/qt/ScintillaEdit
 
 win32:CONFIG(release, debug|release): DEPENDPATH += $$PWD/../scite511/scintilla/bin/release/
 else:win32:CONFIG(debug, debug|release): DEPENDPATH += $$PWD/../scite511/scintilla/bin/debug/
+
+VERSION = 2.0.0.0
+RC_ICONS = icon.ico
+QMAKE_TARGET_COMPANY = Playful Patterns
+QMAKE_TARGET_PRODUCT = Azharja
+QMAKE_TARGET_DESCRIPTION = Azharja
+QMAKE_TARGET_COPYRIGHT = Copyright (C) 2021 Playful Patterns
