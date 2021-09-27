@@ -19,6 +19,7 @@ public:
     
     explicit ItemExplorer(QString name, ExplorerType type, Data& data, QWidget *parent = nullptr);
     void RefreshAfterMaxOneItemDifference();
+    int64_t GetSelectedID() { return mSelectedID; }
     
 signals:
     void ItemOpen(int64_t itemID, bool grabFocus);
@@ -37,11 +38,15 @@ protected:
     Data& mData;
     ExplorerType mType;
     QString mName;
+    int64_t mSelectedID = -1;
     
-    void closeEvent(QCloseEvent* event);
+    void closeEvent(QCloseEvent* event) override;
+    void accept() override;
+    void reject() override;
     int64_t ItemIDSelected();
     void ItemListUpdate(int64_t itemID);
     void UpdateCurrentIDs();
+    void SaveSettings();
 
 protected slots:
     void ItemDoubleClicked(QListWidgetItem *item); 

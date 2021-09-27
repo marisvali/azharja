@@ -32,46 +32,57 @@ ItemExplorer::ItemExplorer(QString name, ExplorerType type, Data& data, QWidget 
         else
             mItemIDCurrent = mData.GetItemTop();
     }
-            
+    
     ItemListUpdate(mItemIDCurrent);
     
     // Add shortcuts.
-    auto returnKey = new QShortcut(QKeySequence(Qt::Key_Return), this);
-    connect(returnKey, SIGNAL(activated()), this, SLOT(ItemEnter()));
-    
-    auto right = new QShortcut(QKeySequence(Qt::Key_Right), this);
-    connect(right, SIGNAL(activated()), this, SLOT(ItemPreview()));
-    
-    auto left = new QShortcut(QKeySequence(Qt::Key_Left), this);
-    connect(left, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));
-    
-    auto f3 = new QShortcut(QKeySequence(Qt::Key_F3), this);
-    connect(f3, SIGNAL(activated()), this, SIGNAL(ShowMain()));
-    
-    auto f4 = new QShortcut(QKeySequence(Qt::Key_F4), this);
-    connect(f4, SIGNAL(activated()), this, SIGNAL(ShowUnassigned()));
-    
-    auto ctrlTab = new QShortcut(QKeySequence("Ctrl+Tab"), this);
-    connect(ctrlTab, SIGNAL(activated()), this, SIGNAL(ItemSwitchTabs()));
-    
-    // Shortcuts copied from the main dialog.
-    auto ctrlW = new QShortcut(QKeySequence("Ctrl+w"), this);
-    connect(ctrlW, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));
-    
-    auto ctrlN = new QShortcut(QKeySequence("Ctrl+n"), this);
-    connect(ctrlN, SIGNAL(activated()), this, SLOT(ItemOpenNewSlot()));
-    
-    auto altP = new QShortcut(QKeySequence("Alt+p"), this);
-    connect(altP, SIGNAL(activated()), parent, SLOT(ItemParentsShow()));
-    
-    auto ctrlP = new QShortcut(QKeySequence("Ctrl+p"), this);
-    connect(ctrlP, SIGNAL(activated()), this, SIGNAL(AddParent()));
-    
-    auto esc = new QShortcut(QKeySequence("Esc"), this);
-    connect(esc, SIGNAL(activated()), parent, SLOT(CloseExtraWindows()));
-    
-    auto shiftDel = new QShortcut(QKeySequence("Shift+Del"), this);
-    connect(shiftDel, SIGNAL(activated()), this, SLOT(ItemDeleteCurrentSlot()));
+    if (mType == ExplorerType::Main || mType == ExplorerType::Unassigned)
+    {
+        auto returnKey = new QShortcut(QKeySequence(Qt::Key_Return), this);
+        connect(returnKey, SIGNAL(activated()), this, SLOT(ItemEnter()));
+        
+        auto right = new QShortcut(QKeySequence(Qt::Key_Right), this);
+        connect(right, SIGNAL(activated()), this, SLOT(ItemPreview()));
+        
+        auto left = new QShortcut(QKeySequence(Qt::Key_Left), this);
+        connect(left, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));
+        
+        auto f3 = new QShortcut(QKeySequence(Qt::Key_F3), this);
+        connect(f3, SIGNAL(activated()), this, SIGNAL(ShowMain()));
+        
+        auto f4 = new QShortcut(QKeySequence(Qt::Key_F4), this);
+        connect(f4, SIGNAL(activated()), this, SIGNAL(ShowUnassigned()));
+        
+        auto ctrlTab = new QShortcut(QKeySequence("Ctrl+Tab"), this);
+        connect(ctrlTab, SIGNAL(activated()), this, SIGNAL(ItemSwitchTabs()));
+        
+        // Shortcuts copied from the main dialog.
+        auto ctrlW = new QShortcut(QKeySequence("Ctrl+w"), this);
+        connect(ctrlW, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));
+        
+        auto ctrlN = new QShortcut(QKeySequence("Ctrl+n"), this);
+        connect(ctrlN, SIGNAL(activated()), this, SLOT(ItemOpenNewSlot()));
+        
+        auto altP = new QShortcut(QKeySequence("Alt+p"), this);
+        connect(altP, SIGNAL(activated()), parent, SLOT(ItemParentsShow()));
+        
+        auto ctrlP = new QShortcut(QKeySequence("Ctrl+p"), this);
+        connect(ctrlP, SIGNAL(activated()), this, SIGNAL(AddParent()));
+        
+        auto esc = new QShortcut(QKeySequence("Esc"), this);
+        connect(esc, SIGNAL(activated()), parent, SLOT(CloseExtraWindows()));
+        
+        auto shiftDel = new QShortcut(QKeySequence("Shift+Del"), this);
+        connect(shiftDel, SIGNAL(activated()), this, SLOT(ItemDeleteCurrentSlot()));
+    }
+    else if (mType == ExplorerType::Search)
+    {
+        auto returnKey = new QShortcut(QKeySequence(Qt::Key_Return), this);
+        connect(returnKey, SIGNAL(activated()), this, SLOT(ItemEnter()));
+        
+        auto right = new QShortcut(QKeySequence(Qt::Key_Right), this);
+        connect(right, SIGNAL(activated()), this, SLOT(ItemPreview()));
+    }
     
     // Restore window position.
     restoreGeometry(settings.value(mName + "/Geometry").toByteArray());
@@ -79,10 +90,25 @@ ItemExplorer::ItemExplorer(QString name, ExplorerType type, Data& data, QWidget 
 
 void ItemExplorer::closeEvent(QCloseEvent* event)
 {
+    QDialog::closeEvent(event);
+}
+
+void ItemExplorer::accept()
+{
+    SaveSettings();
+    QDialog::accept();
+}
+void ItemExplorer::reject()
+{
+    SaveSettings();
+    QDialog::reject();
+}
+
+void ItemExplorer::SaveSettings()
+{
     QSettings settings("PlayfulPatterns", "Azharja");
     settings.setValue(mName + "/Geometry", saveGeometry());
-    settings.setValue(mName + "/StartItem", mItemIDCurrent);
-    QDialog::closeEvent(event);
+    settings.setValue(mName + "/StartItem", mItemIDCurrent);    
 }
 
 int64_t ItemExplorer::ItemIDSelected()
@@ -161,7 +187,7 @@ void ItemExplorer::ItemDoubleClicked(QListWidgetItem*)
 
 void ItemExplorer::ItemEnter()
 {
-    if (mType == ExplorerType::Main || mType == ExplorerType::Search)
+    if (mType == ExplorerType::Main)
     {
         auto itemID = ItemIDSelected();
         if (mData[itemID].NrChildren() == 0)
@@ -180,11 +206,28 @@ void ItemExplorer::ItemEnter()
             hide();
         }
     }
+    else if (mType == ExplorerType::Search)
+    {
+        auto itemID = ItemIDSelected();
+        if (mData[itemID].NrChildren() == 0)
+        {
+            mSelectedID = itemID;
+            accept();
+        }
+        else
+            ItemListUpdate(itemID);
+    }
 }
 
 void ItemExplorer::ItemPreview()
 {
-    emit ItemOpen(ItemIDSelected(), false);
+    if (mType == ExplorerType::Main || mType == ExplorerType::Unassigned)
+        emit ItemOpen(ItemIDSelected(), false);
+    else if (mType == ExplorerType::Search)
+    {
+        mSelectedID = ItemIDSelected();
+        accept();
+    }
 }
 
 void ItemExplorer::ItemPreviewClose()

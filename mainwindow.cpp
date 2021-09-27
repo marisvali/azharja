@@ -57,6 +57,9 @@ MainWindow::MainWindow(QWidget *parent)
     auto altP = new QShortcut(QKeySequence("Alt+p"), this);
     connect(altP, SIGNAL(activated()), this, SLOT(ItemParentsShow()));
     
+    auto ctrlP = new QShortcut(QKeySequence("Ctrl+p"), this);
+    connect(ctrlP, SIGNAL(activated()), this, SLOT(AddParent()));
+    
     auto esc = new QShortcut(QKeySequence("Esc"), this);
     connect(esc, SIGNAL(activated()), this, SLOT(CloseExtraWindows()));
     
@@ -351,14 +354,23 @@ void MainWindow::ParentDelete()
 
 void MainWindow::AddParent()
 {
+    if (mItemsOpen.isEmpty())
+        return;
+        
     // Show dialog which allows the selection of a parent.
+    auto search = new ItemExplorer("ExplorerSearch", ItemExplorer::ExplorerType::Search, mData, this);
+    search->setFont(this->font());
+    search->setWindowTitle("Search need");
+    if (search->exec() == QDialog::Rejected)
+        return;
     
+    auto& item = mData[mItemsOpen.last()->ItemID()];
+    item.AddParent(search->GetSelectedID());
+    ItemParentsUpdate();
     
-//    auto& item = mData[mItemsOpen.last()->ItemID()];
-//    item.AddParent(itemParentID);
-//    ItemParentsUpdate();
+    delete search;
     
-    // Update the items in explorer.
+    // Update the items in explorers.
     mItemExplorer->RefreshAfterMaxOneItemDifference();
     mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }
