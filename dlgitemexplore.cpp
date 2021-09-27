@@ -36,6 +36,9 @@ DlgItemExplore::DlgItemExplore(Data& data, QWidget *parent) : QDialog(parent), m
     auto f4 = new QShortcut(QKeySequence(Qt::Key_F4), this);
     connect(f4, SIGNAL(activated()), this, SLOT(FocusMainWindow()));
     
+    auto ctrlTab = new QShortcut(QKeySequence("Ctrl+Tab"), this);
+    connect(ctrlTab, SIGNAL(activated()), this, SIGNAL(ItemSwitchTabs()));
+    
     // Shortcuts copied from the main dialog.
     auto ctrlW = new QShortcut(QKeySequence("Ctrl+w"), this);
     connect(ctrlW, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));

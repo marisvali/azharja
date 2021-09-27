@@ -67,6 +67,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(mItemExplore, SIGNAL(ItemCloseCurrent(bool)), this, SLOT(ItemCloseCurrent(bool)));
     connect(mItemExplore, SIGNAL(ItemOpenNew(bool)), this, SLOT(ItemOpenNew(bool)));
     connect(mItemExplore, SIGNAL(ItemDeleteCurrent(bool)), this, SLOT(ItemDeleteCurrent(bool)));
+    connect(mItemExplore, SIGNAL(ItemSwitchTabs()), this, SLOT(ItemSwitchTabs()));
     
     // Restore the last positions of our windows.
     QSettings settings("PlayfulPatterns", "Azharja");
@@ -372,4 +373,12 @@ void MainWindow::ItemDeleteCurrent(bool grabFocus)
         ItemOpenNew(grabFocus);
     else
         ItemOpen(mItemsOpen.last(), grabFocus);
+}
+
+void MainWindow::ItemSwitchTabs()
+{
+    if (mItemsOpen.empty())
+        return;
+    
+    mItemsOpen.last()->SwitchTabs();
 }

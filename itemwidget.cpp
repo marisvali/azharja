@@ -135,3 +135,11 @@ void ItemWidget::MarkItemForDeletion()
 {
     mDeleteItem = true;
 }
+
+void ItemWidget::SwitchTabs()
+{
+    if (mJournalAnswer->currentIndex() == 0)
+        mJournalAnswer->setCurrentIndex(1);
+    else
+        mJournalAnswer->setCurrentIndex(0);
+}

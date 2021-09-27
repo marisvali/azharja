@@ -24,6 +24,7 @@ public:
     bool SaveToMemoryTry();
     void SaveToMemoryGuaranteed();
     void MarkItemForDeletion();
+    void SwitchTabs();
     
 signals:
     void ItemDeleted();

@@ -19,6 +19,7 @@ signals:
     void AddParent(int64_t itemID);
     void ItemOpenNew(bool grabFocus);
     void ItemDeleteCurrent(bool grabFocus);
+    void ItemSwitchTabs();
     
 protected:
     QListWidget* mItemList = nullptr;
