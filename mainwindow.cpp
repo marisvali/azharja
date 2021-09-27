@@ -216,6 +216,11 @@ bool MainWindow::HasOnlyEmptyItem()
     return mItemsOpen.size() == 1 && mItemsOpen[0]->IsEmpty();
 }
 
+void MainWindow::ItemCloseCurrent()
+{
+    ItemCloseCurrent(true);
+}
+
 void MainWindow::ItemCloseCurrent(bool grabFocus)
 {
     if (mItemsOpen.empty())

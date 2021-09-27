@@ -40,6 +40,7 @@ protected:
     void ItemOpen(ItemWidget* itemWidget, bool grabFocus = true);
     
 private slots:
+    void ItemCloseCurrent();
     void ItemCloseCurrent(bool grabFocus);
     void ItemExploreShow();
     void ItemOpen(int64_t itemID, bool grabFocus = true);
