@@ -45,9 +45,9 @@ protected:
     QVector<int64_t> mChildrenIDs;
     QVector<int64_t> mParentsIDs;
     bool mSolved = false;
-    QMutex mMutexMeta;
-    QMutex mMutexJournal;
-    QMutex mMutexAnswer;
+    QRecursiveMutex mMutexMeta;
+    QRecursiveMutex mMutexJournal;
+    QRecursiveMutex mMutexAnswer;
     bool mDirtyMeta = false;
     bool mDirtyJournal = false;
     bool mDirtyAnswer = false;

@@ -6,10 +6,10 @@
 #include <data.h>
 
 class MutexTryLocker {
-  QMutex &mMutex;
+  QRecursiveMutex& mMutex;
   bool mLocked;
 public:
-  MutexTryLocker(QMutex& mutex) : mMutex(mutex), mLocked(mutex.tryLock()) {}
+  MutexTryLocker(QRecursiveMutex& mutex) : mMutex(mutex), mLocked(mutex.tryLock()) {}
   ~MutexTryLocker() { if (mLocked) mMutex.unlock(); }
   bool isLocked() const { return mLocked; }
 };
@@ -138,6 +138,9 @@ void Item::SaveToDisk(QString path)
     // Meta info.
     {
         QMutexLocker lock(&mMutexMeta);
+        if (mID == Data::GetItemTop())
+            return;
+        
         if (mDirtyMeta)
         {
             QString pathXml = QDir(path).filePath(QString::number(mID) + ".xml");
@@ -211,14 +214,22 @@ bool Item::IsEmpty()
     return mNeed == "" && mJournal == "" && mAnswer == "";
 }
 
-
 void Item::AddParent(int64_t parentID)
 {
     QMutexLocker lock(&mMutexMeta);
     
-    if (!mParentsIDs.contains(parentID))
-        mParentsIDs.push_back(parentID);
+    if (mParentsIDs.contains(parentID))
+        return;
     
+    // Add the parent to this item.
+    mParentsIDs.push_back(parentID);
+    mDirtyMeta = true;
+    mData.SetDirty(mID);
+    
+    // Remove the top item as a parent.
+    RemoveParent(Data::GetItemTop());
+    
+    // Add this item as a child to new parent.
     mData[parentID].AddChild(mID);
 }
 
@@ -226,9 +237,15 @@ void Item::RemoveParent(int64_t parentID)
 {
     QMutexLocker lock(&mMutexMeta);
     
-    mParentsIDs.removeOne(parentID);
+    if (!mParentsIDs.removeOne(parentID))
+        return;
+    
+    mDirtyMeta = true;
+    mData.SetDirty(mID);
+    
+    // Add the top item as a parent if no other parents are left.
     if (mParentsIDs.size() == 0)
-        mParentsIDs.push_back(Data::GetItemTop());
+        this->AddParent(Data::GetItemTop());
     
     mData[parentID].RemoveChild(mID);
 }
@@ -236,12 +253,24 @@ void Item::RemoveParent(int64_t parentID)
 void Item::AddChild(int64_t childID)
 {
     QMutexLocker lock(&mMutexMeta);
-    if (!mChildrenIDs.contains(childID))
-        mChildrenIDs.push_back(childID);
+    if (mChildrenIDs.contains(childID))
+        return;
+    
+    mChildrenIDs.push_back(childID);
+    mDirtyMeta = true;
+    mData.SetDirty(mID);
+    
+    mData[childID].AddParent(mID);
 }
 
 void Item::RemoveChild(int64_t childID)
 {
     QMutexLocker lock(&mMutexMeta);
-    mChildrenIDs.removeOne(childID);
+    if (!mChildrenIDs.removeOne(childID))
+        return;
+    
+    mDirtyMeta = true;
+    mData.SetDirty(mID);
+    
+    mData[childID].RemoveParent(mID);
 }
