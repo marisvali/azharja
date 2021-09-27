@@ -38,12 +38,9 @@ protected:
     void closeEvent(QCloseEvent *event);
     void ItemParentsUpdate();
     void ItemOpen(ItemWidget* itemWidget, bool grabFocus = true);
-    void ItemOpenNew(bool grabFocus);
     
 private slots:
-    void ItemCloseCurrent();
     void ItemCloseCurrent(bool grabFocus);
-    void ItemClose(int64_t itemID, bool grabFocus);
     void ItemExploreShow();
     void ItemOpen(int64_t itemID, bool grabFocus = true);
     void ItemParentsShow();
@@ -51,10 +48,11 @@ private slots:
     void AddParent(int64_t itemID);
     void ItemCurrentFocus();
     void CloseExtraWindows();
-    void ItemOpenNew();
     void SaveToMemoryTry(QPrivateSignal);
     void ItemDeleted();
     void DoneWithLastSave();
+    void ItemOpenNew();
+    void ItemOpenNew(bool grabFocus);
     
 private:
     Ui::MainWindow *mUI;

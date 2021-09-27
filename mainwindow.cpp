@@ -61,7 +61,8 @@ MainWindow::MainWindow(QWidget *parent)
     mItemExplore->setFont(this->font());
     connect(mItemExplore, SIGNAL(ItemOpen(int64_t,bool)), this, SLOT(ItemOpen(int64_t,bool)));
     connect(mItemExplore, SIGNAL(AddParent(int64_t)), this, SLOT(AddParent(int64_t)));
-    connect(mItemExplore, SIGNAL(ItemClose(int64_t,bool)), this, SLOT(ItemClose(int64_t,bool)));
+    connect(mItemExplore, SIGNAL(ItemCloseCurrent(bool)), this, SLOT(ItemCloseCurrent(bool)));
+    connect(mItemExplore, SIGNAL(ItemOpenNew(bool)), this, SLOT(ItemOpenNew(bool)));
     
     // Restore the last positions of our windows.
     QSettings settings("PlayfulPatterns", "Azharja");
@@ -215,11 +216,6 @@ bool MainWindow::HasOnlyEmptyItem()
     return mItemsOpen.size() == 1 && mItemsOpen[0]->IsEmpty();
 }
 
-void MainWindow::ItemCloseCurrent()
-{
-    ItemCloseCurrent(true);
-}
-
 void MainWindow::ItemCloseCurrent(bool grabFocus)
 {
     if (mItemsOpen.empty())
@@ -302,15 +298,6 @@ void MainWindow::AddParent(int64_t itemParentID)
     mItemExplore->RefreshAfterMaxOneItemDifference();
 }
 
-void MainWindow::ItemClose(int64_t itemID, bool grabFocus)
-{
-    if (mItemsOpen.empty())
-        return;
-    
-    if (mItemsOpen.last()->ItemID() == itemID)
-        ItemCloseCurrent(grabFocus);
-}
-
 void MainWindow::ItemCurrentFocus()
 {
     if (mItemsOpen.empty())
@@ -326,11 +313,6 @@ void MainWindow::CloseExtraWindows()
     mSplitterMain->replaceWidget(1, new QWidget()); // Hide the list of parents.
 }
 
-void MainWindow::ItemOpenNew()
-{
-    ItemOpenNew(true);
-}
-
 void MainWindow::SaveToMemoryTry(QPrivateSignal)
 {
     if (!mItemsOpen.empty())
@@ -341,4 +323,9 @@ void MainWindow::ItemDeleted()
 {
     // Update the items in explorer.
     mItemExplore->RefreshAfterMaxOneItemDifference();
+}
+
+void MainWindow::ItemOpenNew()
+{
+    ItemOpenNew(true);
 }

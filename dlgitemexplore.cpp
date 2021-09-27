@@ -20,8 +20,8 @@ DlgItemExplore::DlgItemExplore(Data& data, QWidget *parent) : QDialog(parent), m
     ItemListUpdate(mData.GetItemTop());
     
     // Add shortcut.
-    auto altE = new QShortcut(QKeySequence(Qt::Key_Return), this);
-    connect(altE, SIGNAL(activated()), this, SLOT(ItemEnter()));
+    auto returnKey = new QShortcut(QKeySequence(Qt::Key_Return), this);
+    connect(returnKey, SIGNAL(activated()), this, SLOT(ItemEnter()));
     
     auto ctrlP = new QShortcut(QKeySequence("Ctrl+p"), this);
     connect(ctrlP, SIGNAL(activated()), this, SLOT(AddParentSlot()));
@@ -31,6 +31,19 @@ DlgItemExplore::DlgItemExplore(Data& data, QWidget *parent) : QDialog(parent), m
     
     auto left = new QShortcut(QKeySequence(Qt::Key_Left), this);
     connect(left, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));
+    
+    // Shortcuts copied from the main dialog.
+    auto ctrlW = new QShortcut(QKeySequence("Ctrl+w"), this);
+    connect(ctrlW, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));
+    
+    auto ctrlN = new QShortcut(QKeySequence("Ctrl+n"), this);
+    connect(ctrlN, SIGNAL(activated()), this, SLOT(ItemOpenNew()));
+    
+    auto altP = new QShortcut(QKeySequence("Alt+p"), this);
+    connect(altP, SIGNAL(activated()), parent, SLOT(ItemParentsShow()));
+    
+    auto esc = new QShortcut(QKeySequence("Esc"), this);
+    connect(esc, SIGNAL(activated()), parent, SLOT(CloseExtraWindows()));
     
     QSettings settings("PlayfulPatterns", "Azharja");
     restoreGeometry(settings.value("DlgItemExplore/Geometry").toByteArray());
@@ -129,7 +142,7 @@ void DlgItemExplore::ItemPreview()
 
 void DlgItemExplore::ItemPreviewClose()
 {
-    emit ItemClose(ItemIDSelected(), false);
+    emit ItemCloseCurrent(false);
 }
 
 void DlgItemExplore::AddParentSlot()
@@ -199,4 +212,9 @@ void DlgItemExplore::RefreshAfterMaxOneItemDifference()
         // An item was added to listNow, namely listNow[idx].
         mItemList->insertItem(idx, ItemToWidget(mData[listNowIDs[idx]]));
     }
+}
+
+void DlgItemExplore::ItemOpenNew()
+{
+    emit ItemOpenNew(false);
 }

@@ -15,8 +15,9 @@ public:
     
 signals:
     void ItemOpen(int64_t itemID, bool grabFocus);
-    void ItemClose(int64_t itemID, bool grabFocus);
+    void ItemCloseCurrent(bool grabFocus);
     void AddParent(int64_t itemID);
+    void ItemOpenNew(bool grabFocus);
     
 protected:
     QListWidget* mItemList = nullptr;
@@ -33,6 +34,7 @@ protected slots:
     void AddParentSlot();
     void ItemPreview();
     void ItemPreviewClose();
+    void ItemOpenNew();
 };
 
 #endif // DLGITEMEXPLORE_H
