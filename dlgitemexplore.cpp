@@ -2,6 +2,7 @@
 #include <QSettings>
 #include <QGridLayout>
 #include <QShortcut>
+#include <QMainWindow>
 
 DlgItemExplore::DlgItemExplore(Data& data, QWidget *parent) : QDialog(parent), mData(data)
 {
@@ -32,6 +33,9 @@ DlgItemExplore::DlgItemExplore(Data& data, QWidget *parent) : QDialog(parent), m
     auto left = new QShortcut(QKeySequence(Qt::Key_Left), this);
     connect(left, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));
     
+    auto f4 = new QShortcut(QKeySequence(Qt::Key_F4), this);
+    connect(f4, SIGNAL(activated()), this, SLOT(FocusMainWindow()));
+    
     // Shortcuts copied from the main dialog.
     auto ctrlW = new QShortcut(QKeySequence("Ctrl+w"), this);
     connect(ctrlW, SIGNAL(activated()), this, SLOT(ItemPreviewClose()));
@@ -45,6 +49,10 @@ DlgItemExplore::DlgItemExplore(Data& data, QWidget *parent) : QDialog(parent), m
     auto esc = new QShortcut(QKeySequence("Esc"), this);
     connect(esc, SIGNAL(activated()), parent, SLOT(CloseExtraWindows()));
     
+    auto shiftDel = new QShortcut(QKeySequence("Shift+Del"), this);
+    connect(shiftDel, SIGNAL(activated()), this, SLOT(ItemDeleteCurrent()));
+    
+    // Restore window position.
     QSettings settings("PlayfulPatterns", "Azharja");
     restoreGeometry(settings.value("DlgItemExplore/Geometry").toByteArray());
 }
@@ -217,4 +225,14 @@ void DlgItemExplore::RefreshAfterMaxOneItemDifference()
 void DlgItemExplore::ItemOpenNew()
 {
     emit ItemOpenNew(false);
+}
+
+void DlgItemExplore::FocusMainWindow()
+{
+    dynamic_cast<QMainWindow*>(parent())->activateWindow();
+}
+
+void DlgItemExplore::ItemDeleteCurrent()
+{
+    emit ItemDeleteCurrent(false);
 }

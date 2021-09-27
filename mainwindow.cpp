@@ -47,14 +47,17 @@ MainWindow::MainWindow(QWidget *parent)
     auto ctrlN = new QShortcut(QKeySequence("Ctrl+n"), this);
     connect(ctrlN, SIGNAL(activated()), this, SLOT(ItemOpenNew()));
     
-    auto altE = new QShortcut(QKeySequence("Alt+e"), this);
-    connect(altE, SIGNAL(activated()), this, SLOT(ItemExploreShow()));
+    auto f4 = new QShortcut(QKeySequence(Qt::Key_F4), this);
+    connect(f4, SIGNAL(activated()), this, SLOT(ItemExploreShow()));
     
     auto altP = new QShortcut(QKeySequence("Alt+p"), this);
     connect(altP, SIGNAL(activated()), this, SLOT(ItemParentsShow()));
     
     auto esc = new QShortcut(QKeySequence("Esc"), this);
     connect(esc, SIGNAL(activated()), this, SLOT(CloseExtraWindows()));
+    
+    auto shiftDel = new QShortcut(QKeySequence("Shift+Del"), this);
+    connect(shiftDel, SIGNAL(activated()), this, SLOT(ItemDeleteCurrent()));
     
     // Initialize the item explorer dialog.
     mItemExplore = new DlgItemExplore(mData, this);
@@ -63,6 +66,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(mItemExplore, SIGNAL(AddParent(int64_t)), this, SLOT(AddParent(int64_t)));
     connect(mItemExplore, SIGNAL(ItemCloseCurrent(bool)), this, SLOT(ItemCloseCurrent(bool)));
     connect(mItemExplore, SIGNAL(ItemOpenNew(bool)), this, SLOT(ItemOpenNew(bool)));
+    connect(mItemExplore, SIGNAL(ItemDeleteCurrent(bool)), this, SLOT(ItemDeleteCurrent(bool)));
     
     // Restore the last positions of our windows.
     QSettings settings("PlayfulPatterns", "Azharja");
@@ -107,7 +111,7 @@ void MainWindow::closeEvent(QCloseEvent* event)
     
     mWaitForSave = new QMessageBox(this);
     mWaitForSave->setWindowTitle("Azharja");
-    mWaitForSave->setText("  Saving data, please wait..  ");
+    mWaitForSave->setText("Saving data, please wait..  ");
     mWaitForSave->setStandardButtons(QMessageBox::NoButton);
     mWaitForSave->setFont(this->font());
     auto pos = this->screen()->geometry().center();
@@ -333,4 +337,39 @@ void MainWindow::ItemDeleted()
 void MainWindow::ItemOpenNew()
 {
     ItemOpenNew(true);
+}
+
+void MainWindow::ItemDeleteCurrent()
+{
+    ItemDeleteCurrent(true);
+}
+
+void MainWindow::ItemDeleteCurrent(bool grabFocus)
+{
+    if (mItemsOpen.empty())
+        return;
+    
+    if (HasOnlyEmptyItem())
+        return;
+    
+    auto confirmDelete = new QMessageBox();
+    confirmDelete->setWindowTitle("Azharja");
+    confirmDelete->setText("Are you sure you want to delete this item?<br><br><b>" + mData[mItemsOpen.last()->ItemID()].Need());
+    confirmDelete->setTextFormat(Qt::TextFormat::RichText);
+    confirmDelete->setFont(this->font());
+    confirmDelete->setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    auto pos = this->screen()->geometry().center();
+    pos -= QPoint(confirmDelete->sizeHint().width() / 2, confirmDelete->sizeHint().height());
+    confirmDelete->move(pos);
+    if (confirmDelete->exec() != QMessageBox::Yes)
+        return;
+    
+    mItemsOpen.last()->MarkItemForDeletion();
+    mItemsOpen.last()->deleteLater();
+    mItemsOpen.removeLast();
+    
+    if (mItemsOpen.size() == 0)
+        ItemOpenNew(grabFocus);
+    else
+        ItemOpen(mItemsOpen.last(), grabFocus);
 }

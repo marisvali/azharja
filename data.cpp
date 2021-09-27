@@ -241,10 +241,15 @@ void Data::DeleteItem(int64_t itemID)
     if (item->Children().size() > 0)
         return;
 
+    // Remove all parents at once instead of having them be removed automaticallyone by one by RemoveChild;
+    QVector<int64_t> parents = item->Parents();
+    item->mParentsIDs.clear();
+    
     // Remove the item as a child from its parents.
-    for (auto parent: item->Parents())
+    for (auto parent: parents)
         mItems[parent]->RemoveChild(itemID);
-        
+    
+    // Actual deletion.
     mItems.remove(itemID);
     delete item;
     

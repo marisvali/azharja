@@ -55,10 +55,10 @@ ItemWidget::ItemWidget(Item& item, QFont font): mItem(item)
 
 ItemWidget::~ItemWidget()
 {
-    while (!SaveToMemoryTry())
-        QThread::msleep(50);
+    if (!mDeleteItem)
+        SaveToMemoryGuaranteed();
     
-    if (mItem.IsEmpty())
+    if (mItem.IsEmpty() || mDeleteItem)
     {
         mItem.GetData().DeleteItem(mItem.ID());
         emit ItemDeleted();
@@ -129,4 +129,9 @@ void ItemWidget::SaveToMemoryGuaranteed()
 {   
     while (!this->SaveToMemoryTry())
         QThread::msleep(50);
+}
+
+void ItemWidget::MarkItemForDeletion()
+{
+    mDeleteItem = true;
 }

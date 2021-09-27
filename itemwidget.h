@@ -23,6 +23,7 @@ public:
     bool IsEmpty();
     bool SaveToMemoryTry();
     void SaveToMemoryGuaranteed();
+    void MarkItemForDeletion();
     
 signals:
     void ItemDeleted();
@@ -33,6 +34,7 @@ protected:
     bool mDirtyJournal = false;
     bool mDirtyAnswer = false;
     bool mDirtyNeed = false;
+    bool mDeleteItem = false;
     
     void SetTabTextColors();
     

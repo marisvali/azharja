@@ -54,6 +54,8 @@ private slots:
     void DoneWithLastSave();
     void ItemOpenNew();
     void ItemOpenNew(bool grabFocus);
+    void ItemDeleteCurrent();
+    void ItemDeleteCurrent(bool grabFocus);
     
 private:
     Ui::MainWindow *mUI;
