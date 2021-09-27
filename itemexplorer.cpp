@@ -169,7 +169,7 @@ void ItemExplorer::ItemListUpdate(int64_t itemIDToExplore)
         
         int idxItemOld = mItemIDs.indexOf(itemIDOld);
         mItemList->scrollToItem(mItemList->item(idxItemOld), QAbstractItemView::PositionAtCenter);
-        mItemList->setCurrentRow(idxItemOld);
+        mItemList->setCurrentRow(idxItemOld);    
     }
     else
     {
@@ -177,6 +177,7 @@ void ItemExplorer::ItemListUpdate(int64_t itemIDToExplore)
         
         for (auto itemID: mItemIDs)
             mItemList->addItem(ItemToWidget(mData[itemID]));
+        mItemList->setCurrentRow(0);
     }
 }
 
