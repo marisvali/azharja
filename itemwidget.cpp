@@ -118,7 +118,7 @@ bool ItemWidget::SaveToMemoryTry()
         }
     
     if (mDirtyJournal)
-        if (mItem.SetJournal(mJournal->getText(mAnswer->length() + 1)))
+        if (mItem.SetJournal(mJournal->getText(mJournal->length() + 1)))
             mDirtyJournal = false;
     
     if (mDirtyAnswer)
