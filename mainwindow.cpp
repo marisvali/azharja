@@ -62,8 +62,8 @@ MainWindow::MainWindow(QWidget *parent)
     auto esc = new QShortcut(QKeySequence("Esc"), this);
     connect(esc, SIGNAL(activated()), this, SLOT(CloseExtraWindows()));
     
-    auto shiftDel = new QShortcut(QKeySequence("Shift+Del"), this);
-    connect(shiftDel, SIGNAL(activated()), this, SLOT(ItemDeleteCurrent()));
+    auto altDel = new QShortcut(QKeySequence("Alt+Del"), this);
+    connect(altDel, SIGNAL(activated()), this, SLOT(ItemDeleteCurrent()));
     
     // Initialize the main item explorer dialog.
     mItemExplorer = new ItemExplorer("ExplorerMain", ItemExplorer::ExplorerType::Main, mData, this);
