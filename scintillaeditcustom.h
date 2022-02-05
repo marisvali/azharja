@@ -13,6 +13,7 @@ signals:
     
 private slots:
     void CharAdded(int ch);
+    void AddDate();
 };
 
 #endif // SCINTILLAEDITCUSTOM_H

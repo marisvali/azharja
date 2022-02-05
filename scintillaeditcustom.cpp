@@ -1,4 +1,6 @@
 #include "scintillaeditcustom.h"
+#include <QShortcut>
+#include <QDateTime>
 
 ScintillaEditCustom::ScintillaEditCustom(QFont font, QWidget *parent) : ScintillaEdit(parent)
 {
@@ -31,6 +33,10 @@ ScintillaEditCustom::ScintillaEditCustom(QFont font, QWidget *parent) : Scintill
     // Maintain the indent of the previous line.
     connect(this, SIGNAL(charAdded(int)), this, SLOT(CharAdded(int)));
     
+    // Insert date.
+    auto altD = new QShortcut(QKeySequence("Alt+d"), this);
+    connect(altD, SIGNAL(activated()), this, SLOT(AddDate()));
+    
     // Make the current line visible.
     setElementColour(SC_ELEMENT_CARET_LINE_BACK, 217 | 235 << 8 | 249 << 16 | 255 << 24);
     setCaretLineVisibleAlways(false);
@@ -50,4 +56,43 @@ void ScintillaEditCustom::CharAdded(int ch)
             setSel(newPos, newPos);
         }
     }
+}
+
+void ScintillaEditCustom::AddDate()
+{
+    auto date = QDateTime::currentDateTime();
+    
+    QString day;
+    switch (date.date().dayOfWeek())
+    {
+    case 1:
+        day = "Monday";
+        break;
+    case 2:
+        day = "Tuesday";
+        break;
+    case 3:
+        day = "Wednesday";
+        break;
+    case 4:
+        day = "Thursday";
+        break;
+    case 5:
+        day = "Friday";
+        break;
+    case 6:
+        day = "Saturday";
+        break;
+    case 7:
+        day = "Sunday";
+        break;
+    }
+    
+    QString dateStr = date.toString("yyyy-MM-dd") + ", " + day;
+    QString separator(dateStr.length(), '-');
+    dateStr = separator + "\n" + dateStr + "\n" + separator + "\n";
+        
+    insertText(currentPos(), dateStr.toStdString().c_str());
+    auto newPos = currentPos() + dateStr.length();
+    setSel(newPos, newPos);
 }
