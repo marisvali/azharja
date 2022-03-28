@@ -1,11 +1,16 @@
 #include "mainwindow.h"
 
-#include <QApplication>
+#include "qtsingleapplication.h"
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
+    QtSingleApplication app(argc, argv);
+
+    if (app.isRunning())
+        return !app.sendMessage("Wake up!");
+    
     MainWindow w;
+    app.setActivationWindow(&w);
     w.show();
-    return a.exec();
+    return app.exec();
 }

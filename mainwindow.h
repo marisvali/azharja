@@ -31,6 +31,7 @@ protected:
     QMessageBox* mWaitForSave = nullptr;
     QTimer* mTimerSaveToMemory;
     bool mCloseInitiated = false;
+    bool mCloseFromSystemTray = false;
     
     bool HasOnlyEmptyItem();
     ItemWidget* ItemOpenGetter(int64_t itemID);

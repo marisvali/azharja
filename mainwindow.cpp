@@ -14,6 +14,7 @@
 #include <QThread>
 #include <QScreen>
 #include <QCloseEvent>
+#include <QSystemTrayIcon>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -104,6 +105,37 @@ MainWindow::MainWindow(QWidget *parent)
     mTimerSaveToMemory = new QTimer(this);
     connect(mTimerSaveToMemory, SIGNAL(timeout()), this, SLOT(SaveToMemoryTry()));
     mTimerSaveToMemory->start(300);
+    
+    // Create system tray icon.
+    auto exitAction = new QAction(tr("&Exit"), this);
+    connect(exitAction, &QAction::triggered, [this]()
+    {
+        mCloseFromSystemTray = true;
+        close();
+    });
+    auto trayIconMenu = new QMenu(this);
+    trayIconMenu->addAction(exitAction);
+    
+    auto sysTrayIcon = new QSystemTrayIcon(this);
+    sysTrayIcon->setContextMenu(trayIconMenu);
+    sysTrayIcon->setIcon(QIcon(":/icon.ico"));
+    sysTrayIcon->show();
+    
+    connect(sysTrayIcon, &QSystemTrayIcon::activated, [this](auto reason)
+    {
+        if(reason == QSystemTrayIcon::Trigger)
+        {
+            if(isVisible())
+            {
+                hide();
+            }
+            else
+            {
+                show();
+                activateWindow();
+            }
+        }
+    });
 }
 
 MainWindow::~MainWindow()
@@ -123,6 +155,13 @@ void MainWindow::DoneWithLastSave()
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
+    if (!mCloseFromSystemTray)
+    {
+        this->hide();
+        event->ignore();
+        return;
+    }
+    
     if (mCloseInitiated)
     {
         event->accept();
@@ -396,9 +435,17 @@ void MainWindow::ItemCurrentFocus()
 
 void MainWindow::CloseExtraWindows()
 {
-    mItemExplorer->hide();
-    mItemExplorerUnassigned->hide();
-    mSplitterMain->replaceWidget(1, new QWidget()); // Hide the list of parents.
+    if (mItemExplorer->isVisible() ||
+        mItemExplorerUnassigned->isVisible())
+    {
+        mItemExplorer->hide();
+        mItemExplorerUnassigned->hide();
+        mSplitterMain->replaceWidget(1, new QWidget()); // Hide the list of parents.
+    }
+    else
+    {
+        close();
+    }
 }
 
 void MainWindow::SaveToMemoryTry(QPrivateSignal)

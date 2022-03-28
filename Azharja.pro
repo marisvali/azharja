@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -17,6 +17,12 @@ SOURCES += \
     itemwidget.cpp \
     main.cpp \
     mainwindow.cpp \
+    qtlocalpeer.cpp \
+    qtlockedfile.cpp \
+    qtlockedfile_unix.cpp \
+    qtlockedfile_win.cpp \
+    qtsingleapplication.cpp \
+    qtsinglecoreapplication.cpp \
     scintillaeditcustom.cpp
 
 HEADERS += \
@@ -27,6 +33,10 @@ HEADERS += \
     itemparentswidget.h \
     itemwidget.h \
     mainwindow.h \
+    qtlocalpeer.h \
+    qtlockedfile.h \
+    qtsingleapplication.h \
+    qtsinglecoreapplication.h \
     scintillaeditcustom.h
 
 FORMS += \
@@ -54,3 +64,6 @@ QMAKE_TARGET_COMPANY = Playful Patterns
 QMAKE_TARGET_PRODUCT = Azharja
 QMAKE_TARGET_DESCRIPTION = Azharja
 QMAKE_TARGET_COPYRIGHT = Copyright (C) 2021 - 2022 Playful Patterns
+
+RESOURCES += \
+    resources.qrc
