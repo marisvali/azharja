@@ -27,7 +27,7 @@ public:
     
     const QString BackupFolder = "Backup";
 
-    void LoadFromDisk();
+    void LoadFromDisk(QString dataFolder);
     void SaveToDisk();
     void LoadFromDiskOld();
     const QMap<int64_t, Item*>& Items() { return mItems; }
@@ -41,10 +41,10 @@ signals:
     void DoneWithLastSave();
 
 protected:
-    const QString DataFolder = "Data";
-    const QString ItemsFolder = DataFolder + "/Items";
-    const QString ConfigFile = DataFolder + "/config.xml";
+    const QString ItemsFolder = "Items";
+    const QString ConfigFile = "config.xml";
     
+    QString mDataFolder = "Data";
     int64_t mCurrentMaxID = -1;
     QMap<int64_t, Item*> mItems;
     QSet<int64_t> mItemsDirty;
@@ -54,6 +54,7 @@ protected:
     
     void AfterLoad();
     void InsertItem(Item* item);
+    QString ItemsFolderPath();
 };
 
 #endif // DATA_H

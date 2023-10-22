@@ -19,10 +19,13 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , mUI(new Ui::MainWindow)
+    , mSettings(
+          QDir(QCoreApplication::applicationDirPath()).filePath("Azharja.ini"),
+          QSettings::IniFormat)
 {
     mUI->setupUi(this);
-    
-    mData.LoadFromDisk();
+
+    mData.LoadFromDisk(mSettings.value("DataPath").toString());
     connect(&mData, SIGNAL(DoneWithLastSave()), this, SLOT(DoneWithLastSave()));
     
     mSplitterMain = new QSplitter();

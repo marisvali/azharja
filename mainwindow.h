@@ -8,6 +8,7 @@
 #include <itemwidget.h>
 #include <itemparentswidget.h>
 #include <QMessageBox>
+#include <QSettings>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -20,8 +21,9 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    
+
 protected:
+    QSettings mSettings;
     Data mData;
     QSplitter* mSplitterMain = nullptr;
     QVector<ItemWidget*> mItemsOpen;

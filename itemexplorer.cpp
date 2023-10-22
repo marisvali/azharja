@@ -5,12 +5,10 @@
 #include <QMainWindow>
 
 ItemExplorer::ItemExplorer(QString name, ExplorerType type, Data& data, QWidget *parent): 
-    QDialog(parent), mData(data), mType(type), mName(name)
+    QDialog(parent, Qt::Window),
+    mData(data), mType(type), mName(name)
 {
     QSettings settings("PlayfulPatterns", "Azharja");
-    
-    setWindowFlag(Qt::WindowMinimizeButtonHint, true);
-    setWindowFlag(Qt::WindowMaximizeButtonHint, true);
 
     QGridLayout* layout = new QGridLayout(this);
     mItemList = new QListWidget();
@@ -108,7 +106,7 @@ void ItemExplorer::SaveSettings()
 {
     QSettings settings("PlayfulPatterns", "Azharja");
     settings.setValue(mName + "/Geometry", saveGeometry());
-    settings.setValue(mName + "/StartItem", mItemIDCurrent);    
+    settings.setValue(mName + "/StartItem", QVariant::fromValue(mItemIDCurrent));
 }
 
 int64_t ItemExplorer::ItemIDSelected()

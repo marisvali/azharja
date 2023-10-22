@@ -87,7 +87,7 @@ Item* Item::LoadFromDisk(QString pathXml, Data& parent)
     // Meta info.
     QFile fileMeta(pathXml);
     if (!fileMeta.open(QIODevice::ReadOnly | QIODevice::Text))
-        throw new std::exception(("Invalid path: " + pathXml).toUtf8().constData());
+        throw new std::runtime_error(("Invalid path: " + pathXml).toUtf8().constData());
     
     QXmlStreamReader xml(&fileMeta);
     while (!xml.atEnd())
@@ -117,7 +117,7 @@ Item* Item::LoadFromDisk(QString pathXml, Data& parent)
     QString pathJournal = path + "/" + QString::number(newItem->mID) + "-J.txt";
     QFile fileJournal(pathJournal);
     if (!fileJournal.open(QIODevice::ReadOnly | QIODevice::Text))
-        throw new std::exception(("Invalid path: " + pathJournal).toUtf8().constData());
+        throw new std::runtime_error(("Invalid path: " + pathJournal).toUtf8().constData());
     
     newItem->mJournal = fileJournal.readAll();
     
@@ -125,7 +125,7 @@ Item* Item::LoadFromDisk(QString pathXml, Data& parent)
     QString pathAnswer = path + "/" + QString::number(newItem->mID) + "-A.txt";
     QFile fileAnswer(pathAnswer);
     if (!fileAnswer.open(QIODevice::ReadOnly | QIODevice::Text))
-        throw new std::exception(("Invalid path: " + pathAnswer).toUtf8().constData());
+        throw new std::runtime_error(("Invalid path: " + pathAnswer).toUtf8().constData());
     
     newItem->mAnswer = fileAnswer.readAll();
     
@@ -146,7 +146,7 @@ void Item::SaveToDisk(QString path)
             QString pathXml = QDir(path).filePath(QString::number(mID) + ".xml");
             QFile fileMeta(pathXml);
             if (!fileMeta.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
-                throw new std::exception(("Invalid path: " + pathXml).toUtf8().constData());
+                throw new std::runtime_error(("Invalid path: " + pathXml).toUtf8().constData());
             
             QXmlStreamWriter xml(&fileMeta);
             xml.setAutoFormatting(true);
@@ -173,7 +173,7 @@ void Item::SaveToDisk(QString path)
             QString pathJournal = QDir(path).filePath(QString::number(mID) + "-J.txt");
             QFile fileJournal(pathJournal);
             if (!fileJournal.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
-                throw new std::exception(("Invalid path: " + pathJournal).toUtf8().constData());
+                throw new std::runtime_error(("Invalid path: " + pathJournal).toUtf8().constData());
             
             fileJournal.write(mJournal.toUtf8());    
         }
@@ -188,7 +188,7 @@ void Item::SaveToDisk(QString path)
             QString pathAnswer = QDir(path).filePath(QString::number(mID) + "-A.txt");
             QFile fileAnswer(pathAnswer);
             if (!fileAnswer.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
-                throw new std::exception(("Invalid path: " + pathAnswer).toUtf8().constData());
+                throw new std::runtime_error(("Invalid path: " + pathAnswer).toUtf8().constData());
             
             fileAnswer.write(mAnswer.toUtf8());
         }

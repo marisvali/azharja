@@ -1,8 +1,8 @@
-QT       += core gui network
+QT       += core gui network core5compat
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++11
+CONFIG += c++11 static
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -67,3 +67,6 @@ QMAKE_TARGET_COPYRIGHT = Copyright (C) 2021 - 2022 Playful Patterns
 
 RESOURCES += \
     resources.qrc
+
+unix:!macx: PRE_TARGETDEPS += $$PWD/../scite511/scintilla/bin/libScintillaEdit.a
+unix:!macx: LIBS += -L$$PWD/../scite511/scintilla/bin/ -l:libScintillaEdit.a

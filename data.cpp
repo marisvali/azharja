@@ -3,6 +3,7 @@
 #include <QXmlStreamReader>
 #include <QDir>
 #include <datasavethread.h>
+#include <thread>
 
 class DataOld
 {
@@ -20,7 +21,7 @@ public:
         {
             QFile file(path);
             if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-                throw new std::exception(("Invalid path: " + path).toUtf8().constData());
+                throw new std::runtime_error(("Invalid path: " + path).toUtf8().constData());
 
             QXmlStreamReader xml(&file);
             while (!xml.atEnd())
@@ -105,13 +106,20 @@ void Data::JustOneMoreSave()
         mSaveDataThread->Stop();
 }
 
-void Data::LoadFromDisk()
+QString Data::ItemsFolderPath()
 {
-    QDir dir(ItemsFolder);
+    return QDir(mDataFolder).filePath(ItemsFolder);
+}
+
+void Data::LoadFromDisk(QString dataFolder)
+{
+    mDataFolder = dataFolder;
+    QDir dir(ItemsFolderPath());
+
     QStringList itemNames = dir.entryList(QStringList() << "*.xml", QDir::Files);
     for (auto& itemName: itemNames)
     {
-        auto item = Item::LoadFromDisk(ItemsFolder + "/" + itemName, *this);
+        auto item = Item::LoadFromDisk(dir.filePath(itemName), *this);
         InsertItem(item);
     }
     
@@ -142,9 +150,9 @@ void Data::SaveToDisk()
         QMutexLocker lock(&mMutexSave);
         
         if (mItems.contains(itemID))
-            mItems[itemID]->SaveToDisk(ItemsFolder);
+            mItems[itemID]->SaveToDisk(ItemsFolderPath());
         else
-            Item::DeleteFromDisk(ItemsFolder, itemID);
+            Item::DeleteFromDisk(ItemsFolderPath(), itemID);
     }
 }
 
