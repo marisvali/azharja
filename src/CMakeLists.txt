@@ -13,7 +13,7 @@ qt_add_executable(azharja
     scintillaeditcustom.cpp
 )
 
-target_link_libraries(azharja PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::Network Qt6::Core5Compat ScintillaEditBase ScintillaEdit)
+target_link_libraries(azharja PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::Network Qt6::Core5Compat ScintillaEdit)
 
 set_target_properties(azharja PROPERTIES
     WIN32_EXECUTABLE ON
