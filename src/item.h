@@ -1,11 +1,11 @@
 #ifndef ITEM_H
 #define ITEM_H
 
+#include <QMutex>
 #include <QString>
 #include <QVector>
-#include <QMutex>
 
-class Data; // Forward declaration.
+class Data;  // Forward declaration.
 
 // Thread-safe class.
 class Item
@@ -21,24 +21,24 @@ public:
     int NrChildren() const;
     QVector<int64_t> Parents() const;
     int NrParents() const;
-    
+
     bool SetNeed(const QString& str);
     bool SetJournal(const QString& str);
     bool SetAnswer(const QString& str);
     void AddParent(int64_t parentID);
     void RemoveParent(int64_t parentID);
     Data& GetData() { return mData; };
-    
+
 protected:
     friend class Data;
-    
+
     static Item* LoadFromDisk(QString path, Data& parent);
     static void DeleteFromDisk(QString path, int64_t id);
-    
-    Item(Data& parent, int64_t id): mData(parent), mID(id) {}
+
+    Item(Data& parent, int64_t id) : mData(parent), mID(id) {}
     Item(const Item&) = delete;
     Item& operator=(const Item&) = delete;
-    
+
     Data& mData;
     int64_t mID = -1;
     QString mNeed;
@@ -53,10 +53,10 @@ protected:
     bool mDirtyMeta = false;
     bool mDirtyJournal = false;
     bool mDirtyAnswer = false;
-    
+
     void SaveToDisk(QString path);
     void AddChild(int64_t childID);
     void RemoveChild(int64_t childID);
 };
 
-#endif // ITEM_H
+#endif  // ITEM_H

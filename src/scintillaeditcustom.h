@@ -12,16 +12,17 @@
 #define MAKING_LIBRARY
 #include <ScintillaEdit.h>
 
-class ScintillaEditCustom : public ScintillaEdit {
-  Q_OBJECT
+class ScintillaEditCustom : public ScintillaEdit
+{
+    Q_OBJECT
 public:
-  explicit ScintillaEditCustom(QFont font, QWidget *parent = nullptr);
+    explicit ScintillaEditCustom(QFont font, QWidget *parent = nullptr);
 
 signals:
 
 private slots:
-  void CharAdded(int ch);
-  void AddDate();
+    void CharAdded(int ch);
+    void AddDate();
 };
 
-#endif // SCINTILLAEDITCUSTOM_H
+#endif  // SCINTILLAEDITCUSTOM_H

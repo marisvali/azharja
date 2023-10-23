@@ -59,13 +59,11 @@ public:
 public Q_SLOTS:
     bool sendMessage(const QString &message, int timeout = 5000);
 
-
 Q_SIGNALS:
     void messageReceived(const QString &message);
 
-
 private:
-    QtLocalPeer* peer;
+    QtLocalPeer *peer;
 };
 
-#endif // QTSINGLECOREAPPLICATION_H
+#endif  // QTSINGLECOREAPPLICATION_H

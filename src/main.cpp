@@ -1,15 +1,15 @@
-#include "mainwindow.h"
-
-#include "qtsingleapplication.h"
 #include <iostream>
 
-int main(int argc, char *argv[])
+#include "mainwindow.h"
+#include "qtsingleapplication.h"
+
+int main(int argc, char* argv[])
 {
     QtSingleApplication app(argc, argv);
 
     if (app.isRunning())
         return !app.sendMessage("Wake up!");
-    
+
     int result = 0;
     try
     {

@@ -1,49 +1,51 @@
 #ifndef ITEMWIDGET_H
 #define ITEMWIDGET_H
 
-#include "data.h"
-#include "scintillaeditcustom.h"
 #include <QLineEdit>
 #include <QTabWidget>
 #include <QWidget>
 
-class ItemWidget : public QWidget {
-  Q_OBJECT
+#include "data.h"
+#include "scintillaeditcustom.h"
+
+class ItemWidget : public QWidget
+{
+    Q_OBJECT
 
 public:
-  ItemWidget(Item &item, QFont font);
-  ~ItemWidget();
+    ItemWidget(Item &item, QFont font);
+    ~ItemWidget();
 
-  QLineEdit *mNeed = nullptr;
-  ScintillaEditCustom *mJournal = nullptr;
-  ScintillaEditCustom *mAnswer = nullptr;
+    QLineEdit *mNeed = nullptr;
+    ScintillaEditCustom *mJournal = nullptr;
+    ScintillaEditCustom *mAnswer = nullptr;
 
-  int64_t ItemID() { return mItem.ID(); }
-  bool IsEmpty();
-  bool SaveToMemoryTry();
-  void SaveToMemoryGuaranteed();
-  void MarkItemForDeletion();
-  void SwitchTabs();
+    int64_t ItemID() { return mItem.ID(); }
+    bool IsEmpty();
+    bool SaveToMemoryTry();
+    void SaveToMemoryGuaranteed();
+    void MarkItemForDeletion();
+    void SwitchTabs();
 
 signals:
-  void ItemDeleted();
-  void NeedChanged();
+    void ItemDeleted();
+    void NeedChanged();
 
 protected:
-  QTabWidget *mJournalAnswer;
-  Item &mItem;
-  bool mDirtyJournal = false;
-  bool mDirtyAnswer = false;
-  bool mDirtyNeed = false;
-  bool mDeleteItem = false;
+    QTabWidget *mJournalAnswer;
+    Item &mItem;
+    bool mDirtyJournal = false;
+    bool mDirtyAnswer = false;
+    bool mDirtyNeed = false;
+    bool mDeleteItem = false;
 
-  void SetTabTextColors();
+    void SetTabTextColors();
 
 private slots:
-  void TabChanged(int index);
-  void UpdateJournal();
-  void UpdateAnswer();
-  void UpdateNeed(const QString &);
+    void TabChanged(int index);
+    void UpdateJournal();
+    void UpdateAnswer();
+    void UpdateNeed(const QString &);
 };
 
-#endif // ITEMWIDGET_H
+#endif  // ITEMWIDGET_H

@@ -41,9 +41,9 @@
 #ifndef QTLOCALPEER_H
 #define QTLOCALPEER_H
 
+#include <QDir>
 #include <QLocalServer>
 #include <QLocalSocket>
-#include <QDir>
 
 #include "qtlockedfile.h"
 
@@ -55,8 +55,7 @@ public:
     QtLocalPeer(QObject *parent = 0, const QString &appId = QString());
     bool isClient();
     bool sendMessage(const QString &message, int timeout);
-    QString applicationId() const
-        { return id; }
+    QString applicationId() const { return id; }
 
 Q_SIGNALS:
     void messageReceived(const QString &message);
@@ -67,11 +66,11 @@ protected Q_SLOTS:
 protected:
     QString id;
     QString socketName;
-    QLocalServer* server;
+    QLocalServer *server;
     QtLP_Private::QtLockedFile lockFile;
 
 private:
-    static const char* ack;
+    static const char *ack;
 };
 
-#endif // QTLOCALPEER_H
+#endif  // QTLOCALPEER_H

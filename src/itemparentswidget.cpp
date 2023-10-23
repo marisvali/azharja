@@ -1,6 +1,8 @@
 #include "itemparentswidget.h"
-#include <QVBoxLayout>
+
 #include <QLabel>
+#include <QVBoxLayout>
+
 
 ItemParentsWidget::ItemParentsWidget(QWidget* parent) : QWidget(parent)
 {
