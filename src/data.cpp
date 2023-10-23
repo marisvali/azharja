@@ -24,6 +24,16 @@ void Data::JustOneMoreSave()
         mSaveDataThread->Stop();
 }
 
+int64_t Data::GetValidItemID(int64_t defaultID)
+{
+    if (mItems.contains(defaultID))
+        return defaultID;
+    else if (mItems.count() > 0)
+        return mItems.firstKey();
+    else
+        return GetItemTop();
+}
+
 QString Data::ItemsFolderPath() { return QDir(mDataFolder).filePath(ItemsFolder); }
 
 void Data::LoadFromDisk(QString dataFolder)

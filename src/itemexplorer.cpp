@@ -5,7 +5,8 @@
 #include <QSettings>
 #include <QShortcut>
 
-ItemExplorer::ItemExplorer(QString name, ExplorerType type, Data& data, QWidget* parent) : QDialog(parent, Qt::Window), mData(data), mType(type), mName(name)
+ItemExplorer::ItemExplorer(QString name, ExplorerType type, Data& data, QWidget* parent)
+    : QDialog(parent, Qt::Window), mData(data), mType(type), mName(name)
 {
     QSettings settings("PlayfulPatterns", "Azharja");
 
@@ -13,19 +14,21 @@ ItemExplorer::ItemExplorer(QString name, ExplorerType type, Data& data, QWidget*
     mItemList = new QListWidget();
     mItemList->setWordWrap(true);
     layout->addWidget(mItemList);
-    connect(mItemList, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(ItemDoubleClicked(QListWidgetItem*)));
+    connect(mItemList, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this,
+            SLOT(ItemDoubleClicked(QListWidgetItem*)));
 
     // Open the item when right clicking the item list.
     // I use the custom context menu because the context menu is what is triggered on right click.
     mItemList->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(mItemList, &QListView::customContextMenuRequested, [this](QPoint) { emit ItemOpen(ItemIDSelected(), true); });
+    connect(mItemList, &QListView::customContextMenuRequested,
+            [this](QPoint) { emit ItemOpen(ItemIDSelected(), true); });
 
     if (mType == ExplorerType::Main || mType == ExplorerType::Search)
     {
         if (settings.contains(mName + "/StartItem"))
             mItemIDCurrent = settings.value(mName + "/StartItem").toLongLong();
-        else
-            mItemIDCurrent = mData.GetItemTop();
+
+        mItemIDCurrent = mData.GetValidItemID(mItemIDCurrent);
     }
 
     ItemListUpdate(mItemIDCurrent);
@@ -167,7 +170,8 @@ void ItemExplorer::ItemListUpdate(int64_t itemIDToExplore)
     {
         UpdateCurrentIDs();
 
-        for (auto itemID : mItemIDs) mItemList->addItem(ItemToWidget(mData[itemID]));
+        for (auto itemID : mItemIDs)
+            mItemList->addItem(ItemToWidget(mData[itemID]));
         mItemList->setCurrentRow(0);
     }
 }
@@ -228,27 +232,32 @@ void ItemExplorer::UpdateCurrentIDs()
     {
         auto& item = mData[mItemIDCurrent];
         auto parents = item.Parents();
-        for (auto parentID : parents) mItemIDs.push_back(parentID);
+        for (auto parentID : parents)
+            mItemIDs.push_back(parentID);
         mItemIDs.push_back(mItemIDCurrent);
         auto children = item.Children();
-        for (auto childID : children) mItemIDs.push_back(childID);
+        for (auto childID : children)
+            mItemIDs.push_back(childID);
     }
     else if (mType == ExplorerType::Unassigned)
     {
         for (auto item : mData.Items())
-            if (item->NrParents() == 0 && item->ID() != Data::GetItemTop()) mItemIDs.push_back(item->ID());
+            if (item->NrParents() == 0 && item->ID() != Data::GetItemTop())
+                mItemIDs.push_back(item->ID());
     }
 }
 
 void ItemExplorer::RefreshAfterMaxOneItemDifference()
 {
     QVector<QString> listPrev;
-    for (int idx = 0; idx < mItemList->count(); ++idx) listPrev.push_back(mItemList->item(idx)->text());
+    for (int idx = 0; idx < mItemList->count(); ++idx)
+        listPrev.push_back(mItemList->item(idx)->text());
 
     UpdateCurrentIDs();
 
     QVector<QString> listNow;
-    for (auto id : mItemIDs) listNow.push_back(ItemWidgetName(mData[id]));
+    for (auto id : mItemIDs)
+        listNow.push_back(ItemWidgetName(mData[id]));
 
     if (mType == ExplorerType::Main || mType == ExplorerType::Search)
     {
@@ -268,9 +277,11 @@ void ItemExplorer::RefreshAfterMaxOneItemDifference()
     // Synchronize mItemList so that it contains listNow.
     // Find the idx where there is a difference between listPrev and listNow
     int idx = 0;
-    while (idx < listPrev.size() && idx < listNow.size() && listPrev[idx] == listNow[idx]) ++idx;
+    while (idx < listPrev.size() && idx < listNow.size() && listPrev[idx] == listNow[idx])
+        ++idx;
 
-    if (listNow.size() == listPrev.size() && idx == listNow.size()) return;  // No change.
+    if (listNow.size() == listPrev.size() && idx == listNow.size())
+        return;  // No change.
 
     if (listPrev.size() > listNow.size())
     {
@@ -282,7 +293,8 @@ void ItemExplorer::RefreshAfterMaxOneItemDifference()
         // An item was changed from listPrev to listNow, namely the idx item.
         delete mItemList->takeItem(idx);
         mItemList->insertItem(idx, ItemToWidget(mData[mItemIDs[idx]]));
-        if (mItemList->currentRow() > 0) mItemList->setCurrentRow(mItemList->currentRow() - 1);
+        if (mItemList->currentRow() > 0)
+            mItemList->setCurrentRow(mItemList->currentRow() - 1);
     }
     else
     {

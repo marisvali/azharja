@@ -37,6 +37,7 @@ public:
     void DeleteItem(int64_t itemID);
     void SetDirty(int64_t itemID);
     void JustOneMoreSave();
+    int64_t GetValidItemID(int64_t defaultID);
 
 signals:
     void DoneWithLastSave();
