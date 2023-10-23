@@ -7,90 +7,6 @@
 
 #include "datasavethread.h"
 
-class DataOld
-{
-public:
-    class Item
-    {
-    public:
-        int64_t mID = -1;
-        QString mNeed;
-        QString mJournal;
-        QString mAnswer;
-        QVector<QString> mTags;
-
-        void LoadFromDisk(QString path)
-        {
-            QFile file(path);
-            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-                throw new std::runtime_error(("Invalid path: " + path).toUtf8().constData());
-
-            QXmlStreamReader xml(&file);
-            while (!xml.atEnd())
-            {
-                xml.readNext();
-                if (!xml.isStartElement())
-                    continue;
-
-                QString node = xml.name().toString();
-
-                if (node == "need")
-                    mNeed = xml.readElementText();
-
-                else if (node == "journal")
-                    mJournal = xml.readElementText();
-
-                else if (node == "answer")
-                    mAnswer = xml.readElementText();
-
-                else if (node == "ID" && mID < 0)
-                    mID = xml.readElementText().toLongLong();
-
-                else if (node == "tags")
-                {
-                    while (!xml.atEnd())
-                    {
-                        xml.readNext();
-                        QString node = xml.name().toString();
-
-                        if (xml.isEndElement() && node == "tags")
-                            break;
-
-                        if (!xml.isStartElement())
-                            continue;
-
-                        if (node != "tag")
-                            continue;
-
-                        mTags.push_back(xml.attributes().value("name").toString());
-                    }
-                }
-            }
-        }
-    };
-
-    const QString BackupFolder = "Backup";
-
-    void LoadFromDisk()
-    {
-        QDir dir(ItemsFolder);
-        QStringList itemNames = dir.entryList(QStringList() << "*.xml", QDir::Files);
-        for (auto &itemName : itemNames)
-        {
-            Item item;
-            item.LoadFromDisk(ItemsFolder + "/" + itemName);
-            Items.push_back(item);
-        }
-    }
-
-    std::vector<Item> Items;
-
-private:
-    const QString DataFolder = "c:/Azharja-1.0/Data";
-    const QString ItemsFolder = DataFolder + "/Items";
-    const QString ConfigFile = DataFolder + "/config.xml";
-};
-
 Data::~Data()
 {
     JustOneMoreSave();
@@ -154,47 +70,6 @@ void Data::SaveToDisk()
         else
             Item::DeleteFromDisk(ItemsFolderPath(), itemID);
     }
-}
-
-void Data::LoadFromDiskOld()
-{
-    DataOld dataOld;
-    dataOld.LoadFromDisk();
-
-    int64_t maxID = 0;
-    for (auto &itemOld : dataOld.Items)
-        if (itemOld.mID > maxID)
-            maxID = itemOld.mID;
-
-    QMap<QString, int64_t> itemsTags;
-    for (auto &item : dataOld.Items)
-        for (auto &tag : item.mTags)
-            if (!itemsTags.contains(tag))
-            {
-                auto item = new Item(*this, ++maxID);
-                item->mDirtyMeta = item->mDirtyJournal = item->mDirtyAnswer = true;
-                item->mNeed = tag;
-                InsertItem(item);
-                mItemsDirty.insert(item->ID());
-                itemsTags.insert(tag, item->mID);
-                item->mParentsIDs.push_back(Data::GetItemTop());
-            }
-
-    for (auto &itemOld : dataOld.Items)
-    {
-        auto item = new Item(*this, itemOld.mID);
-        item->mNeed = itemOld.mNeed;
-        item->mJournal = itemOld.mJournal;
-        item->mAnswer = itemOld.mAnswer;
-        item->mDirtyMeta = item->mDirtyJournal = item->mDirtyAnswer = true;
-        InsertItem(item);
-        mItemsDirty.insert(item->ID());
-
-        for (auto &tagParent : itemOld.mTags)
-            item->mParentsIDs.push_back(itemsTags[tagParent]);
-    }
-
-    AfterLoad();
 }
 
 void Data::AfterLoad()
