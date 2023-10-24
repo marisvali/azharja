@@ -40,6 +40,8 @@ void Data::LoadFromDisk(QString dataFolder)
 {
     mDataFolder = dataFolder;
     QDir dir(ItemsFolderPath());
+    if (!dir.exists())
+        QDir().mkpath(dir.path());
 
     QStringList itemNames = dir.entryList(QStringList() << "*.xml", QDir::Files);
     for (auto &itemName : itemNames)

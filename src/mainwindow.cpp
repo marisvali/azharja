@@ -25,7 +25,19 @@ MainWindow::MainWindow(QWidget* parent)
 {
     mUI->setupUi(this);
 
-    mData.LoadFromDisk(mSettings.value("DataPath").toString());
+    if (!mSettings.contains("DataPath"))
+    {
+        mSettings.setValue("DataPath", "Data");
+    }
+
+    // Warning!
+    // "Although backslash is a special character in INI files, most Windows applications don't escape backslashes (\) in file paths. QSettings always treats backslash as a special character and provides no API for reading or writing such entries."
+    // Translation: you must use / instead of \ in your paths, in the INI file, if you're reading it using QSettings.
+    QString dataPath(mSettings.value("DataPath").toString());
+    if (QDir(dataPath).isRelative())
+        dataPath = QDir(QCoreApplication::applicationDirPath()).filePath(dataPath);
+
+    mData.LoadFromDisk(dataPath);
     connect(&mData, SIGNAL(DoneWithLastSave()), this, SLOT(DoneWithLastSave()));
 
     mSplitterMain = new QSplitter();
@@ -151,7 +163,8 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::~MainWindow()
 {
     mSplitterMain->replaceWidget(0, new QWidget());
-    for (auto item : mItemsOpen) delete item;
+    for (auto item : mItemsOpen)
+        delete item;
     mItemsOpen.clear();
     delete mUI;
 }
@@ -178,7 +191,8 @@ void MainWindow::closeEvent(QCloseEvent* event)
     }
 
     mTimerSaveToMemory->stop();
-    for (auto item : mItemsOpen) item->SaveToMemoryGuaranteed();
+    for (auto item : mItemsOpen)
+        item->SaveToMemoryGuaranteed();
     mData.JustOneMoreSave();
 
     mWaitForSave = new QMessageBox(this);
@@ -287,7 +301,8 @@ void MainWindow::ItemParentsUpdate()
     if (itemID >= 0)
     {
         auto parents = mData[itemID].Parents();
-        for (auto parentID : parents) mItemParents->mList->addItem(mData[parentID].Need());
+        for (auto parentID : parents)
+            mItemParents->mList->addItem(mData[parentID].Need());
     }
 }
 
