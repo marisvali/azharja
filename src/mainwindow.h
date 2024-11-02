@@ -68,6 +68,8 @@ private slots:
     void ItemDeleteCurrent(bool grabFocus);
     void ItemSwitchTabs();
     void NeedChanged();
+    void SaveWindowPositions();
+    void ItemFinder();
 
 private:
     Ui::MainWindow *mUI;
