@@ -1,8 +1,11 @@
 #include "mainwindow.h"
 
+#include <QInputDialog>
+#include <QDebug>
 #include <QCloseEvent>
 #include <QDir>
 #include <QFile>
+#include <QTextStream>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QScreen>
@@ -56,6 +59,9 @@ MainWindow::MainWindow(QWidget* parent)
     ItemParentsUpdate();
 
     // Add shortcuts.
+    auto ctrlF = new QShortcut(QKeySequence("Ctrl+f"), this);
+    connect(ctrlF, SIGNAL(activated()), this, SLOT(ItemFinder()));
+
     auto ctrlW = new QShortcut(QKeySequence("Ctrl+w"), this);
     connect(ctrlW, SIGNAL(activated()), this, SLOT(ItemCloseCurrent()));
 
@@ -92,6 +98,7 @@ MainWindow::MainWindow(QWidget* parent)
     connect(mItemExplorer, SIGNAL(ItemSwitchTabs()), this, SLOT(ItemSwitchTabs()));
     connect(mItemExplorer, SIGNAL(ShowMain()), this, SLOT(ItemExplorerShow()));
     connect(mItemExplorer, SIGNAL(ShowUnassigned()), this, SLOT(ItemExplorerUnassignedShow()));
+
 
     // Initialize the item explorer for unassigned items.
     mItemExplorerUnassigned =
@@ -205,14 +212,24 @@ void MainWindow::closeEvent(QCloseEvent* event)
     mWaitForSave->move(pos);
     mWaitForSave->show();
 
+    SaveWindowPositions();
+
+    mCloseInitiated = true;
+    event->ignore();
+}
+
+void MainWindow::SaveWindowPositions()
+{
     QSettings settings("PlayfulPatterns", "Azharja");
     settings.setValue("MainWindow/Geometry", saveGeometry());
     settings.setValue("MainWindow/WindowState", saveState());
     settings.setValue("MainWindow/mSplitterMainGeometry", mSplitterMain->saveGeometry());
     settings.setValue("MainWindow/mSplitterMainState", mSplitterMain->saveState());
 
-    mCloseInitiated = true;
-    event->ignore();
+    if (mItemExplorer)
+        mItemExplorer->SaveSettings();
+    if (mItemExplorerUnassigned)
+        mItemExplorerUnassigned->SaveSettings();
 }
 
 void MainWindow::ItemOpen(int64_t itemID, bool grabFocus)
@@ -466,6 +483,8 @@ void MainWindow::CloseExtraWindows()
 
 void MainWindow::SaveToMemoryTry(QPrivateSignal)
 {
+    SaveWindowPositions();
+
     if (!mItemsOpen.empty())
         mItemsOpen.last()->SaveToMemoryTry();
 }
@@ -524,4 +543,47 @@ void MainWindow::NeedChanged()
 {
     mItemExplorer->RefreshAfterMaxOneItemDifference();
     mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
+}
+
+void MainWindow::ItemFinder()
+{
+    QDir dataDir(QCoreApplication::applicationDirPath() + "/Data/Items");
+
+    if (!dataDir.exists())
+    {
+        QMessageBox::critical(this, "Azharja", "Data folder not found.");
+        return;
+    }
+
+    QStringList filters;
+    filters  << "*.txt";
+    dataDir.setNameFilters(filters);
+
+    bool okPressed;
+    QString message = "Enter the word you want to search for:";
+    QString searchWord = QInputDialog::getText(this, "Azharja", message, QLineEdit::Normal, "", &okPressed);
+
+    int totalcount = 0;
+    if (okPressed){
+        foreach (QString fileName, dataDir.entryList()){
+            QFile file(dataDir.filePath(fileName));
+
+            if(file.open(QIODevice::ReadOnly | QIODevice::Text)){
+                QTextStream in(&file);
+                QString fileContent = in.readAll();
+                file.close();
+
+                int count = 0;
+                while((count = fileContent.indexOf(searchWord, count)) != -1){
+                    count += searchWord.length();
+                    totalcount++;
+                }
+            }
+
+        }
+        QMessageBox::information(this, "Azharja", "The word " + searchWord + " was found " + QString::number(totalcount) + " times.");
+    }
+
+
+
 }

@@ -21,6 +21,7 @@ public:
     explicit ItemExplorer(QString name, ExplorerType type, Data &data, QWidget *parent = nullptr);
     void RefreshAfterMaxOneItemDifference();
     int64_t GetSelectedID() { return mSelectedID; }
+    void SaveSettings();
 
 signals:
     void ItemOpen(int64_t itemID, bool grabFocus);
@@ -47,7 +48,6 @@ protected:
     int64_t ItemIDSelected();
     void ItemListUpdate(int64_t itemID);
     void UpdateCurrentIDs();
-    void SaveSettings();
 
 protected slots:
     void ItemDoubleClicked(QListWidgetItem *item);
