@@ -559,7 +559,7 @@ void MainWindow::ItemFinder()
     filters  << "*.txt";
     dataDir.setNameFilters(filters);
 
-    bool okPressed;
+    bool okPressed = false;
     QString message = "Enter the word you want to search for:";
     QString searchWord = QInputDialog::getText(this, "Azharja", message, QLineEdit::Normal, "", &okPressed);
 
