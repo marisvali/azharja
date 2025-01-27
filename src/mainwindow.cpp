@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+//#include "BoyerMoore.h"
 
 #include <QInputDialog>
 #include <QDebug>
@@ -545,45 +546,31 @@ void MainWindow::NeedChanged()
     mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }
 
-void MainWindow::ItemFinder()
-{
-    QDir dataDir(QCoreApplication::applicationDirPath() + "/Data/Items");
-
-    if (!dataDir.exists())
-    {
-        QMessageBox::critical(this, "Azharja", "Data folder not found.");
-        return;
-    }
-
-    QStringList filters;
-    filters  << "*.txt";
-    dataDir.setNameFilters(filters);
-
+void MainWindow::ItemFinder() {
     bool okPressed = false;
     QString message = "Enter the word you want to search for:";
     QString searchWord = QInputDialog::getText(this, "Azharja", message, QLineEdit::Normal, "", &okPressed);
 
-    int totalcount = 0;
-    if (okPressed){
-        foreach (QString fileName, dataDir.entryList()){
-            QFile file(dataDir.filePath(fileName));
-
-            if(file.open(QIODevice::ReadOnly | QIODevice::Text)){
-                QTextStream in(&file);
-                QString fileContent = in.readAll();
-                file.close();
-
-                int count = 0;
-                while((count = fileContent.indexOf(searchWord, count)) != -1){
-                    count += searchWord.length();
-                    totalcount++;
-                }
-            }
-
-        }
-        QMessageBox::information(this, "Azharja", "The word " + searchWord + " was found " + QString::number(totalcount) + " times.");
+    if (!okPressed || searchWord.isEmpty()) {
+        return;
     }
 
+    int totalCount = 0;
+    const auto& items = mData.Items();
+    for (auto it = items.begin(); it != items.end(); ++it) {
+        Item* item = it.value();
+        if (item) {
+            QString journal = item->Journal();
+            totalCount += journal.count(searchWord, Qt::CaseInsensitive);
 
+            QString answer = item->Answer();
+            totalCount += answer.count(searchWord, Qt::CaseInsensitive);
+        }
+    }
 
+    QMessageBox::information(this, "Azharja",
+                             QString("The word '%1' was found %2 times in the data.")
+                                 .arg(searchWord)
+                                 .arg(totalCount));
 }
+
