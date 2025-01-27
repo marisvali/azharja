@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-//#include "BoyerMoore.h"
+#include "BoyerMoore.h"
 
 #include <QInputDialog>
 #include <QDebug>
