@@ -90,7 +90,7 @@ void ScintillaEditCustom::AddDate()
     }
 
     QString dateStr = date.toString("yyyy-MM-dd") + ", " + day;
-    QString separator(dateStr.length(), 'X');
+    QString separator(dateStr.length(), '-');
     dateStr = separator + "\n" + dateStr + "\n" + separator + "\n";
 
     insertText(currentPos(), dateStr.toStdString().c_str());

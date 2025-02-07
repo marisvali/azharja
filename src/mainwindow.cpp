@@ -557,15 +557,15 @@ void MainWindow::ItemFinder() {
 
     int totalCount = 0;
     const auto& items = mData.Items();
-    for (auto it = items.begin(); it != items.end(); ++it) {
-        Item* item = it.value();
-        if (item) {
-            QString journal = item->Journal();
-            totalCount += journal.count(searchWord, Qt::CaseInsensitive);
+    for (auto item : mData.Items()) {
 
-            QString answer = item->Answer();
-            totalCount += answer.count(searchWord, Qt::CaseInsensitive);
-        }
+        QString journal = item->Journal();
+        QVector<size_t> journalMatches = SearchStringPattern(journal, searchWord);
+        totalCount += journalMatches.size();
+
+        QString answer = item->Answer();
+        QVector<size_t> answerMatches = SearchStringPattern(answer, searchWord);
+        totalCount += answerMatches.size();
     }
 
     QMessageBox::information(this, "Azharja",

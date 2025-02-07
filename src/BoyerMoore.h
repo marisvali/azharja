@@ -6,6 +6,6 @@
 #include <QtGlobal>
 
 
-QVector<size_t> boyer_moore_all(const QString& text, const QString& pattern);
+QVector<size_t> SearchStringPattern(const QString& text, const QString& pattern);
 
 #endif
