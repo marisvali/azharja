@@ -562,11 +562,11 @@ void MainWindow::ItemFinder()
     for (auto item : mData.Items())
     {
         QString journal = item->Journal();
-        QVector<size_t> journalMatches = SearchStringPattern(journal, searchWord);
+        QVector<int64_t> journalMatches = SearchStringPattern(journal, searchWord);
         totalCount += journalMatches.size();
 
         QString answer = item->Answer();
-        QVector<size_t> answerMatches = SearchStringPattern(answer, searchWord);
+        QVector<int64_t> answerMatches = SearchStringPattern(answer, searchWord);
         totalCount += answerMatches.size();
     }
 

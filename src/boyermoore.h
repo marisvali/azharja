@@ -5,7 +5,6 @@
 #include <QVector>
 #include <QtGlobal>
 
-
-QVector<size_t> SearchStringPattern(const QString& text, const QString& pattern);
+QVector<int64_t> SearchStringPattern(const QString& text, const QString& pattern);
 
 #endif
