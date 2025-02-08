@@ -100,10 +100,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(mItemExplorer, SIGNAL(ShowMain()), this, SLOT(ItemExplorerShow()));
     connect(mItemExplorer, SIGNAL(ShowUnassigned()), this, SLOT(ItemExplorerUnassignedShow()));
 
-
     // Initialize the item explorer for unassigned items.
     mItemExplorerUnassigned =
-            new ItemExplorer("ExplorerUnassigned", ItemExplorer::ExplorerType::Unassigned, mData, this);
+        new ItemExplorer("ExplorerUnassigned", ItemExplorer::ExplorerType::Unassigned, mData, this);
     mItemExplorerUnassigned->setFont(this->font());
     mItemExplorerUnassigned->setWindowTitle("Unassigned needs");
     connect(mItemExplorerUnassigned, SIGNAL(ItemOpen(int64_t, bool)), this,
@@ -126,7 +125,7 @@ MainWindow::MainWindow(QWidget *parent)
     restoreGeometry(settings.value("MainWindow/Geometry").toByteArray());
     restoreState(settings.value("MainWindow/WindowState").toByteArray());
     mSplitterMain->restoreGeometry(
-            settings.value("MainWindow/mSplitterMainGeometry").toByteArray());
+        settings.value("MainWindow/mSplitterMainGeometry").toByteArray());
     mSplitterMain->restoreState(settings.value("MainWindow/mSplitterMainState").toByteArray());
 
     // Save data from widget to Item periodically.
@@ -137,7 +136,8 @@ MainWindow::MainWindow(QWidget *parent)
     // Create system tray icon.
     auto exitAction = new QAction(tr("&Exit"), this);
     connect(exitAction, &QAction::triggered,
-            [this]() {
+            [this]()
+            {
                 mCloseFromSystemTray = true;
                 close();
             });
@@ -150,13 +150,15 @@ MainWindow::MainWindow(QWidget *parent)
     sysTrayIcon->show();
 
     connect(sysTrayIcon, &QSystemTrayIcon::activated,
-            [this](auto reason) {
+            [this](auto reason)
+            {
                 if (reason == QSystemTrayIcon::Trigger)
                 {
                     if (isVisible())
                     {
                         hide();
-                    } else
+                    }
+                    else
                     {
                         show();
                         activateWindow();
@@ -168,7 +170,7 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     mSplitterMain->replaceWidget(0, new QWidget());
-    for (auto item: mItemsOpen)
+    for (auto item : mItemsOpen)
         delete item;
     mItemsOpen.clear();
     delete mUI;
@@ -196,7 +198,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
 
     mTimerSaveToMemory->stop();
-    for (auto item: mItemsOpen)
+    for (auto item : mItemsOpen)
         item->SaveToMemoryGuaranteed();
     mData.JustOneMoreSave();
 
@@ -269,7 +271,7 @@ void MainWindow::ItemOpen(ItemWidget *itemWidget, bool grabFocus)
     if (mSplitterMain->count() > 0)
         mSplitterMain->replaceWidget(0, itemWidget);
     else
-        mSplitterMain->addWidget(itemWidget);// This is necessary for the first call to ItemOpen.
+        mSplitterMain->addWidget(itemWidget);  // This is necessary for the first call to ItemOpen.
 
     // Delete the empty item if necessary.
     if (HasOnlyEmptyItem() && itemWidget != mItemsOpen[0])
@@ -283,7 +285,8 @@ void MainWindow::ItemOpen(ItemWidget *itemWidget, bool grabFocus)
     {
         mItemsOpen.removeAt(mItemsOpen.indexOf(itemWidget));
         mItemsOpen.push_back(itemWidget);
-    } else
+    }
+    else
     {
         mItemsOpen.push_back(itemWidget);
     }
@@ -315,7 +318,7 @@ void MainWindow::ItemParentsUpdate()
     if (itemID >= 0)
     {
         auto parents = mData[itemID].Parents();
-        for (auto parentID: parents)
+        for (auto parentID : parents)
             mItemParents->mList->addItem(mData[parentID].Need());
     }
 }
@@ -364,7 +367,8 @@ void MainWindow::ItemExplorerShow()
             this->activateWindow();
         else
             mItemExplorer->activateWindow();
-    } else
+    }
+    else
     {
         mItemExplorer->show();
         mItemExplorer->activateWindow();
@@ -380,7 +384,8 @@ void MainWindow::ItemExplorerUnassignedShow()
             this->activateWindow();
         else
             mItemExplorerUnassigned->activateWindow();
-    } else
+    }
+    else
     {
         mItemExplorerUnassigned->show();
         mItemExplorerUnassigned->activateWindow();
@@ -429,7 +434,7 @@ void MainWindow::AddParent()
 
     // Show dialog which allows the selection of a parent.
     auto search =
-            new ItemExplorer("ExplorerSearch", ItemExplorer::ExplorerType::Search, mData, this);
+        new ItemExplorer("ExplorerSearch", ItemExplorer::ExplorerType::Search, mData, this);
     search->setFont(this->font());
     search->setWindowTitle("Search need");
     if (search->exec() == QDialog::Accepted)
@@ -468,8 +473,9 @@ void MainWindow::CloseExtraWindows()
     {
         mItemExplorer->hide();
         mItemExplorerUnassigned->hide();
-        mSplitterMain->replaceWidget(1, new QWidget());// Hide the list of parents.
-    } else
+        mSplitterMain->replaceWidget(1, new QWidget());  // Hide the list of parents.
+    }
+    else
     {
         close();
     }
@@ -543,18 +549,18 @@ void MainWindow::ItemFinder()
 {
     bool okPressed = false;
     QString message = "Enter the word you want to search for:";
-    QString searchWord = QInputDialog::getText(this, "Azharja", message, QLineEdit::Normal, "", &okPressed);
+    QString searchWord =
+        QInputDialog::getText(this, "Azharja", message, QLineEdit::Normal, "", &okPressed);
 
     if (!okPressed || searchWord.isEmpty())
     {
         return;
     }
-    
+
     int totalCount = 0;
     const auto &items = mData.Items();
-    for (auto item: mData.Items())
+    for (auto item : mData.Items())
     {
-
         QString journal = item->Journal();
         QVector<size_t> journalMatches = SearchStringPattern(journal, searchWord);
         totalCount += journalMatches.size();
@@ -564,8 +570,7 @@ void MainWindow::ItemFinder()
         totalCount += answerMatches.size();
     }
 
-    QMessageBox::information(this, "Azharja",
-                             QString("The word '%1' was found %2 times in the data.")
-                                     .arg(searchWord)
-                                     .arg(totalCount));
+    QMessageBox::information(
+        this, "Azharja",
+        QString("The word '%1' was found %2 times in the data.").arg(searchWord).arg(totalCount));
 }
