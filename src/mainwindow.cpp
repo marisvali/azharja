@@ -1,24 +1,24 @@
 #include "mainwindow.h"
-#include "BoyerMoore.h"
 
-#include <QInputDialog>
-#include <QDebug>
 #include <QCloseEvent>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
-#include <QTextStream>
+#include <QInputDialog>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QScreen>
 #include <QSettings>
 #include <QShortcut>
 #include <QSystemTrayIcon>
+#include <QTextStream>
 #include <QThread>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QXmlStreamReader>
 #include <exception>
 
+#include "boyermoore.h"
 #include "ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget* parent)

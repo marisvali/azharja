@@ -1,4 +1,5 @@
-#include "BoyerMoore.h"
+#include "boyermoore.h"
+
 #include <iostream>
 
 constexpr size_t ALPHABET_LEN = 256;
@@ -11,7 +12,7 @@ void CreateDelta1(QVector<ptrdiff_t>& delta1, const QString& pat) {
         delta1[pat[i].unicode()] = patlen - 1 - i;
 }
 
-bool is_prefix(const QString& word, size_t wordlen, ptrdiff_t pos) {
+bool IsPrefix(const QString& word, size_t wordlen, ptrdiff_t pos) {
     size_t suffixlen = wordlen - pos;
     for (size_t i = 0; i < suffixlen; i++)
     {
@@ -21,7 +22,7 @@ bool is_prefix(const QString& word, size_t wordlen, ptrdiff_t pos) {
     return true;
 }
 
-size_t suffix_length(const QString& word, size_t wordlen, ptrdiff_t pos) {
+size_t SuffixLength(const QString& word, size_t wordlen, ptrdiff_t pos) {
     size_t i = 0;
     while ((pos >= i) && (word[pos - i] == word[wordlen - 1 - i]))
         i++;
@@ -33,12 +34,13 @@ void CreateDelta2(QVector<ptrdiff_t>& delta2, const QString& pat) {
     qint64 last_prefix_index = patlen - 1;
     for (qint64 p = patlen - 1; p >= 0; p--)
     {
-        if (is_prefix(pat, patlen, p + 1))
+        if (IsPrefix(pat, patlen, p + 1))
             last_prefix_index = p + 1;
         delta2[p] = last_prefix_index + (patlen - 1 - p);
     }
-    for (size_t p = 0; p < patlen - 1; p++) {
-        size_t slen = suffix_length(pat, patlen, p);
+    for (size_t p = 0; p < patlen - 1; p++)
+    {
+        size_t slen = SuffixLength(pat, patlen, p);
         //add boundary checks
         if (p >= slen && p - slen < patlen && patlen - 1 - slen < patlen)
         {
