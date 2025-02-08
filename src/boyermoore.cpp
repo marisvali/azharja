@@ -66,7 +66,9 @@ QVector<size_t> SearchStringPattern(const QString& text, const QString& pattern)
         ptrdiff_t j = pattern.length() - 1;
         while (j >= 0 && text[i] == pattern[j])
         {
-            if (i == 0) break; // Prevent negative index.
+            // Prevent negative index.
+            if (i == 0)
+                break;
             --i;
             --j;
         }
@@ -74,7 +76,9 @@ QVector<size_t> SearchStringPattern(const QString& text, const QString& pattern)
         {
             occurrences.push_back(i + 1);
             i += delta2[0];
-        } else i += qMax(delta1[text[i].unicode()], delta2[j]);
+        }
+        else
+            i += qMax(delta1[text[i].unicode()], delta2[j]);
     }
     return occurrences;
 }
