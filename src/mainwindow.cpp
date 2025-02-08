@@ -22,15 +22,13 @@
 #include "ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent),
-      mUI(new Ui::MainWindow),
-      mSettings(QDir(QCoreApplication::applicationDirPath()).filePath("Azharja.ini"),
-                QSettings::IniFormat)
-{
+        : QMainWindow(parent),
+          mUI(new Ui::MainWindow),
+          mSettings(QDir(QCoreApplication::applicationDirPath()).filePath("Azharja.ini"),
+                    QSettings::IniFormat) {
     mUI->setupUi(this);
 
-    if (!mSettings.contains("DataPath"))
-    {
+    if (!mSettings.contains("DataPath")) {
         mSettings.setValue("DataPath", "Data");
     }
 
@@ -102,7 +100,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Initialize the item explorer for unassigned items.
     mItemExplorerUnassigned =
-        new ItemExplorer("ExplorerUnassigned", ItemExplorer::ExplorerType::Unassigned, mData, this);
+            new ItemExplorer("ExplorerUnassigned", ItemExplorer::ExplorerType::Unassigned, mData, this);
     mItemExplorerUnassigned->setFont(this->font());
     mItemExplorerUnassigned->setWindowTitle("Unassigned needs");
     connect(mItemExplorerUnassigned, SIGNAL(ItemOpen(int64_t, bool)), this,
@@ -125,7 +123,7 @@ MainWindow::MainWindow(QWidget *parent)
     restoreGeometry(settings.value("MainWindow/Geometry").toByteArray());
     restoreState(settings.value("MainWindow/WindowState").toByteArray());
     mSplitterMain->restoreGeometry(
-        settings.value("MainWindow/mSplitterMainGeometry").toByteArray());
+            settings.value("MainWindow/mSplitterMainGeometry").toByteArray());
     mSplitterMain->restoreState(settings.value("MainWindow/mSplitterMainState").toByteArray());
 
     // Save data from widget to Item periodically.
@@ -136,8 +134,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Create system tray icon.
     auto exitAction = new QAction(tr("&Exit"), this);
     connect(exitAction, &QAction::triggered,
-            [this]()
-            {
+            [this]() {
                 mCloseFromSystemTray = true;
                 close();
             });
@@ -150,16 +147,11 @@ MainWindow::MainWindow(QWidget *parent)
     sysTrayIcon->show();
 
     connect(sysTrayIcon, &QSystemTrayIcon::activated,
-            [this](auto reason)
-            {
-                if (reason == QSystemTrayIcon::Trigger)
-                {
-                    if (isVisible())
-                    {
+            [this](auto reason) {
+                if (reason == QSystemTrayIcon::Trigger) {
+                    if (isVisible()) {
                         hide();
-                    }
-                    else
-                    {
+                    } else {
                         show();
                         activateWindow();
                     }
@@ -167,38 +159,33 @@ MainWindow::MainWindow(QWidget *parent)
             });
 }
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow() {
     mSplitterMain->replaceWidget(0, new QWidget());
-    for (auto item : mItemsOpen)
+    for (auto item: mItemsOpen)
         delete item;
     mItemsOpen.clear();
     delete mUI;
 }
 
-void MainWindow::DoneWithLastSave()
-{
+void MainWindow::DoneWithLastSave() {
     mWaitForSave->hide();
     this->close();
 }
 
-void MainWindow::closeEvent(QCloseEvent *event)
-{
-    if (!mCloseFromSystemTray)
-    {
+void MainWindow::closeEvent(QCloseEvent *event) {
+    if (!mCloseFromSystemTray) {
         this->hide();
         event->ignore();
         return;
     }
 
-    if (mCloseInitiated)
-    {
+    if (mCloseInitiated) {
         event->accept();
         return;
     }
 
     mTimerSaveToMemory->stop();
-    for (auto item : mItemsOpen)
+    for (auto item: mItemsOpen)
         item->SaveToMemoryGuaranteed();
     mData.JustOneMoreSave();
 
@@ -218,8 +205,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     event->ignore();
 }
 
-void MainWindow::SaveWindowPositions()
-{
+void MainWindow::SaveWindowPositions() {
     QSettings settings("PlayfulPatterns", "Azharja");
     settings.setValue("MainWindow/Geometry", saveGeometry());
     settings.setValue("MainWindow/WindowState", saveState());
@@ -232,8 +218,7 @@ void MainWindow::SaveWindowPositions()
         mItemExplorerUnassigned->SaveSettings();
 }
 
-void MainWindow::ItemOpen(int64_t itemID, bool grabFocus)
-{
+void MainWindow::ItemOpen(int64_t itemID, bool grabFocus) {
     // Check if the item is already open.
     ItemWidget *found = nullptr;
     found = ItemFind(itemID);
@@ -247,8 +232,7 @@ void MainWindow::ItemOpen(int64_t itemID, bool grabFocus)
     ItemOpen(newItem, grabFocus);
 }
 
-void MainWindow::ItemOpenNew(bool grabFocus)
-{
+void MainWindow::ItemOpenNew(bool grabFocus) {
     // Check if an empty item already exists.
     ItemWidget *found = nullptr;
     found = ItemFindEmpty();
@@ -266,34 +250,28 @@ void MainWindow::ItemOpenNew(bool grabFocus)
         mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }
 
-void MainWindow::ItemOpen(ItemWidget *itemWidget, bool grabFocus)
-{
+void MainWindow::ItemOpen(ItemWidget *itemWidget, bool grabFocus) {
     if (mSplitterMain->count() > 0)
         mSplitterMain->replaceWidget(0, itemWidget);
     else
         mSplitterMain->addWidget(itemWidget);  // This is necessary for the first call to ItemOpen.
 
     // Delete the empty item if necessary.
-    if (HasOnlyEmptyItem() && itemWidget != mItemsOpen[0])
-    {
+    if (HasOnlyEmptyItem() && itemWidget != mItemsOpen[0]) {
         mItemsOpen[0]->deleteLater();
         mItemsOpen.clear();
     }
 
     // Put the newly opened item at the end of the list of open items.
-    if (mItemsOpen.contains(itemWidget))
-    {
+    if (mItemsOpen.contains(itemWidget)) {
         mItemsOpen.removeAt(mItemsOpen.indexOf(itemWidget));
         mItemsOpen.push_back(itemWidget);
-    }
-    else
-    {
+    } else {
         mItemsOpen.push_back(itemWidget);
     }
 
     // Clear memory beyond 20 open items.
-    if (mItemsOpen.size() > 20)
-    {
+    if (mItemsOpen.size() > 20) {
         mItemsOpen[0]->deleteLater();
         mItemsOpen.removeAt(0);
     }
@@ -304,8 +282,7 @@ void MainWindow::ItemOpen(ItemWidget *itemWidget, bool grabFocus)
     ItemParentsUpdate();
 }
 
-void MainWindow::ItemParentsUpdate()
-{
+void MainWindow::ItemParentsUpdate() {
     if (!mItemParents)
         return;
 
@@ -315,10 +292,9 @@ void MainWindow::ItemParentsUpdate()
     // Update the list of parents.
     mItemParents->mList->clear();
     auto itemID = mItemsOpen.last()->ItemID();
-    if (itemID >= 0)
-    {
+    if (itemID >= 0) {
         auto parents = mData[itemID].Parents();
-        for (auto parentID : parents)
+        for (auto parentID: parents)
             mItemParents->mList->addItem(mData[parentID].Need());
     }
 }
@@ -327,8 +303,7 @@ bool MainWindow::HasOnlyEmptyItem() { return mItemsOpen.size() == 1 && mItemsOpe
 
 void MainWindow::ItemCloseCurrent() { ItemCloseCurrent(true); }
 
-void MainWindow::ItemCloseCurrent(bool grabFocus)
-{
+void MainWindow::ItemCloseCurrent(bool grabFocus) {
     if (mItemsOpen.empty())
         return;
 
@@ -345,64 +320,52 @@ void MainWindow::ItemCloseCurrent(bool grabFocus)
         ItemOpen(mItemsOpen.last(), grabFocus);
 }
 
-ItemWidget *MainWindow::ItemFind(int64_t itemID)
-{
+ItemWidget *MainWindow::ItemFind(int64_t itemID) {
     auto found = std::find_if(mItemsOpen.begin(), mItemsOpen.end(),
                               [itemID](ItemWidget *x) { return x->ItemID() == itemID; });
     return found == mItemsOpen.end() ? nullptr : *found;
 }
 
-ItemWidget *MainWindow::ItemFindEmpty()
-{
+ItemWidget *MainWindow::ItemFindEmpty() {
     auto found = std::find_if(mItemsOpen.begin(), mItemsOpen.end(),
                               [](ItemWidget *x) { return x->IsEmpty(); });
     return found == mItemsOpen.end() ? nullptr : *found;
 }
 
-void MainWindow::ItemExplorerShow()
-{
-    if (mItemExplorer->isVisible())
-    {
+void MainWindow::ItemExplorerShow() {
+    if (mItemExplorer->isVisible()) {
         if (mItemExplorer->isActiveWindow())
             this->activateWindow();
         else
             mItemExplorer->activateWindow();
-    }
-    else
-    {
+    } else {
         mItemExplorer->show();
         mItemExplorer->activateWindow();
         mItemExplorerUnassigned->hide();
     }
 }
 
-void MainWindow::ItemExplorerUnassignedShow()
-{
-    if (mItemExplorerUnassigned->isVisible())
-    {
+void MainWindow::ItemExplorerUnassignedShow() {
+    if (mItemExplorerUnassigned->isVisible()) {
         if (mItemExplorerUnassigned->isActiveWindow())
             this->activateWindow();
         else
             mItemExplorerUnassigned->activateWindow();
-    }
-    else
-    {
+    } else {
         mItemExplorerUnassigned->show();
         mItemExplorerUnassigned->activateWindow();
         mItemExplorer->hide();
     }
 }
 
-void MainWindow::ItemParentsShow()
-{
+void MainWindow::ItemParentsShow() {
     if (dynamic_cast<ItemParentsWidget *>(mSplitterMain->widget(1)))
         mSplitterMain->replaceWidget(1, new QWidget());
     else
         mSplitterMain->replaceWidget(1, mItemParents);
 }
 
-void MainWindow::ParentDelete()
-{
+void MainWindow::ParentDelete() {
     if (mItemsOpen.empty())
         return;
 
@@ -423,8 +386,7 @@ void MainWindow::ParentDelete()
     mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }
 
-void MainWindow::AddParent()
-{
+void MainWindow::AddParent() {
     if (mItemsOpen.isEmpty())
         return;
 
@@ -434,11 +396,10 @@ void MainWindow::AddParent()
 
     // Show dialog which allows the selection of a parent.
     auto search =
-        new ItemExplorer("ExplorerSearch", ItemExplorer::ExplorerType::Search, mData, this);
+            new ItemExplorer("ExplorerSearch", ItemExplorer::ExplorerType::Search, mData, this);
     search->setFont(this->font());
     search->setWindowTitle("Search need");
-    if (search->exec() == QDialog::Accepted)
-    {
+    if (search->exec() == QDialog::Accepted) {
         auto &item = mData[mItemsOpen.last()->ItemID()];
         item.AddParent(search->GetSelectedID());
         ItemParentsUpdate();
@@ -458,8 +419,7 @@ void MainWindow::AddParent()
         mItemExplorerUnassigned->activateWindow();
 }
 
-void MainWindow::ItemCurrentFocus()
-{
+void MainWindow::ItemCurrentFocus() {
     if (mItemsOpen.empty())
         return;
 
@@ -467,30 +427,24 @@ void MainWindow::ItemCurrentFocus()
     mItemsOpen.last()->setFocus();
 }
 
-void MainWindow::CloseExtraWindows()
-{
-    if (mItemExplorer->isVisible() || mItemExplorerUnassigned->isVisible())
-    {
+void MainWindow::CloseExtraWindows() {
+    if (mItemExplorer->isVisible() || mItemExplorerUnassigned->isVisible()) {
         mItemExplorer->hide();
         mItemExplorerUnassigned->hide();
         mSplitterMain->replaceWidget(1, new QWidget());  // Hide the list of parents.
-    }
-    else
-    {
+    } else {
         close();
     }
 }
 
-void MainWindow::SaveToMemoryTry(QPrivateSignal)
-{
+void MainWindow::SaveToMemoryTry(QPrivateSignal) {
     SaveWindowPositions();
 
     if (!mItemsOpen.empty())
         mItemsOpen.last()->SaveToMemoryTry();
 }
 
-void MainWindow::ItemDeleted()
-{
+void MainWindow::ItemDeleted() {
     // Update the items in explorers.
     mItemExplorer->RefreshAfterMaxOneItemDifference();
     mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
@@ -500,8 +454,7 @@ void MainWindow::ItemOpenNew() { ItemOpenNew(true); }
 
 void MainWindow::ItemDeleteCurrent() { ItemDeleteCurrent(true); }
 
-void MainWindow::ItemDeleteCurrent(bool grabFocus)
-{
+void MainWindow::ItemDeleteCurrent(bool grabFocus) {
     if (mItemsOpen.empty())
         return;
 
@@ -531,36 +484,30 @@ void MainWindow::ItemDeleteCurrent(bool grabFocus)
         ItemOpen(mItemsOpen.last(), grabFocus);
 }
 
-void MainWindow::ItemSwitchTabs()
-{
+void MainWindow::ItemSwitchTabs() {
     if (mItemsOpen.empty())
         return;
 
     mItemsOpen.last()->SwitchTabs();
 }
 
-void MainWindow::NeedChanged()
-{
+void MainWindow::NeedChanged() {
     mItemExplorer->RefreshAfterMaxOneItemDifference();
     mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }
 
-void MainWindow::ItemFinder()
-{
+void MainWindow::ItemFinder() {
     bool okPressed = false;
     QString message = "Enter the word you want to search for:";
     QString searchWord =
-        QInputDialog::getText(this, "Azharja", message, QLineEdit::Normal, "", &okPressed);
+            QInputDialog::getText(this, "Azharja", message, QLineEdit::Normal, "", &okPressed);
 
-    if (!okPressed || searchWord.isEmpty())
-    {
+    if (!okPressed || searchWord.isEmpty()) {
         return;
     }
 
     int totalCount = 0;
-    const auto &items = mData.Items();
-    for (auto item : mData.Items())
-    {
+    for (auto item: mData.Items()) {
         QString journal = item->Journal();
         QVector<int64_t> journalMatches = SearchStringPattern(journal, searchWord);
         totalCount += journalMatches.size();
@@ -571,6 +518,6 @@ void MainWindow::ItemFinder()
     }
 
     QMessageBox::information(
-        this, "Azharja",
-        QString("The word '%1' was found %2 times in the data.").arg(searchWord).arg(totalCount));
+            this, "Azharja",
+            QString("The word '%1' was found %2 times in the data.").arg(searchWord).arg(totalCount));
 }
