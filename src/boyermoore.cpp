@@ -42,7 +42,7 @@ void CreateDelta2(QVector<ptrdiff_t>& delta2, const QString& pat)
     for (size_t p = 0; p < patlen - 1; p++)
     {
         size_t slen = SuffixLength(pat, patlen, p);
-        //add boundary checks
+        // Add boundary checks.
         if (p >= slen && p - slen < patlen && patlen - 1 - slen < patlen)
             if (pat[p - slen] != pat[patlen - 1 - slen])
                 delta2[patlen - 1 - slen] = patlen - 1 - p + slen;
@@ -66,11 +66,12 @@ QVector<size_t> SearchStringPattern(const QString& text, const QString& pattern)
         ptrdiff_t j = pattern.length() - 1;
         while (j >= 0 && text[i] == pattern[j])
         {
-            if (i == 0) break; // prevent negative index
+            if (i == 0) break; // Prevent negative index.
             --i;
             --j;
         }
-        if (j < 0) {
+        if (j < 0)
+        {
             occurrences.push_back(i + 1);
             i += delta2[0];
         } else i += qMax(delta1[text[i].unicode()], delta2[j]);
