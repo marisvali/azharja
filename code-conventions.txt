@@ -1,0 +1,95 @@
+Azharja is coded in C++. C++ can be used in many different ways. For Azharja, there are some C++ conventions or best practices that should be followed by developers.
+
+Summary list
+------------
+
+- DO use int64_t for all integer variables
+- DO use Qt types if available, not the std:: counterparts (QString, QVector, QMap, QFile etc)
+- DO use range-based for loop whenever possible, e.g. "for (auto x: y)" instead of "for (size_t idx = 0; idx < y.size(); ++idx)"
+- DO pass things by value (makes copies) by default, use references and pointers only when the logic demands it or the objects are large (as a rule of thumb, anything that will probably be under 1000 bytes is not large)
+- DO write comments with a space after //, with capitalization and punctuation:
+    // This comment has it all: capitalization, commas, period.
+- DO write code according to the format specified in .clang-format
+- DO use raw pointers where it makes sense
+
+- DON'T worry about SOLID
+- DON'T try to anticipate changes by making very general designs
+- DON'T avoid hardcoded values
+- DON'T use inheritance unless it really makes sense
+- DON'T put in boilerplate code (e.g. members with both trivial getter and setter)
+- DON'T complicate execution flow with callbacks or lambdas unless it really makes sense
+- DON'T use algorithms such as std::transform, std::accumulate and std::for_each where simple loops get the job done
+
+Overall philosophy
+------------------
+
+Best practices are almost never universally applicable. The best practices that work well for web servers may not be the ones that work well for embedded applications, or games, or high speed trading applications, or text editors.
+
+We should not follow any popular or well-known C++ best practice unless it makes sense for this application.
+
+Azharja is a small desktop application that needs to be fast and comfortable to use. It has a very limited user base. It is intended to be a useful everyday tool, but it is not foreseen to ever be more than a small application. It is not foreseen to ever handle huge amounts of data.
+
+It must be fast, comfortable to use, reliable (not lose or corrupt data). Developers that work on it will be able to understand the entire code base. Refactoring the entire application should always be possible.
+
+Because of these considerations, we can decide to not follow some well-known C++/programming best practices such as:
+- SOLID. Everything SOLID promotes seems to apply to big code bases developed by many different teams where refactoring is very difficult. In Azharja, you don't need to be afraid if adding a feature means modifying existing parts of it. It is not so important that when you add a feature, you only touch very little of the rest of the code. You should understand the existing code well enough to always be able to reshape it if it makes sense. The cost of following SOLID in this code base would very likely heavily outweigh the benefits.
+- "Never use 'using namespace'." Feel free to universally include a namespace. It's a small application. It will not use a ton of libraries and namespaces. If there is ever a conflict, it can be handled when it happens.
+- "Split in small class and small functions. Avoid big, god-like classes." If it makes sense to have a central class that coordinates everything, just have it. The cost of finding modules where there are no natural splits is higher than just working with a large class or function.
+- "Anticipate changes. Program in a generic way that allows changes easily." It is very difficult to know which generality will cover both what you need now AND some unknown future requirements. When it's obvious how to make something more generic and it's obvious that it makes sense, do so. Otherwise, just implement the current requirements. When requirements change, the developer will understand the codebase and reshape it as needed and generalize things if it makes sense then.
+- "Don't use hardcoded values. Make every value configurable, otherwise you need to recompile the application when the parameter changes." Feel free to hardcode values when it makes sense. Especially if it's a single place in the code and the value is not likely to change. The application is small, the user base is small. Recompiling and redistributing a new version of the application is not costly.
+- "Always use getters and setters." If a member of a class should only be read or written by other classes, add a getter or a setter. If you have both, just make it public. The developer using your class is expected to understand it before using it. They are expected to know how to use it correctly.
+
+Relationship with Qt
+--------------------
+
+Azharja is a desktop application developed in C++, so it uses the Qt framework as it is arguably the most popular framework for developing desktop applications in C++.
+
+C++ has standard types for common things: std::string, std::vector, std::map. Qt has its own types for everything: QString, QVector, QMap etc. So which should we use in Azharja's business logic?
+
+A common pattern in development is to separate the interface from the business logic. The point is to be able to replace the interface with an interface written using another framework, but keep the same business logic. This would mean using QString where Qt requires it (for its visual widgets for example), and use std::string to handle data internally.
+
+For Azharja, we use QString everywhere. We are forced to use QString for the interface. The decision is to avoid unnecessary friction and just use Qt types everywhere. QString, QVector, QMap, QFile, all of it.
+
+Azharja is mostly interface. If we ever migrate from Qt, most of the application needs to be rewritten anyway. The decision is that it doesn't make sense to pay the cost of a very flexible architecture that may never pay off.
+
+Pointers
+--------
+
+A common C++ best practice is to never use raw pointers and always use smart pointers. In Azharja, we are not afraid of raw pointers. If an object needs a reference to another object, use a raw pointer. If an object needs to own another object, it should just own the object.
+
+Smart pointers would make sense if an object owned another object but only through its base class. For example:
+
+class Base { .. }
+
+class Derived: public Base { .. }
+
+class A
+{
+    unique_ptr<Base> mDerivedObj;
+
+    A()
+    {
+        mDerivedObj = make_unique<Derived>();
+    }
+}
+
+Class A wants to own an object of type Derived, but it will handle it via its Base class. Since we want to use inheritance, we need to use pointers. Since A owns Derived, doesn't just reference it, we should use smart pointers.
+
+However, in Azharja you should avoid SOLID and inheritance unless it really makes sense. You should rarely need to use smart pointers.
+
+Prefer passing by value
+-----------------------
+
+Pass by value by default, unless you have reason to believe the data you're passing is large. For example, the content of an item is large, don't copy that QString unless it makes sense. The path to a file is not large, copy that QString. A list of all the items in the database is large. A list of maximum 20 elements is not large. In general, anything that will probably always be under 1000 bytes is not large.
+
+References and pointers confuse things and make code more complicated. Often it may be more efficient to make copies than to make the processor jump around in memory from pointer to pointer.
+
+All ints are int64_t
+--------------------
+
+Ints in C++ have too many gotchas. You never know what exactly you get with int. Unsigned integers like size_t only cause headaches. If you have different types of integers in your code, you'll inevitably find yourself needing a static_cast<> somewhere which just makes the code ugly. This is a small application, using a tiny amount of RAM. There should be no reason to use anything less than int64_t for an integer, even if you know the number is always smaller than 20.
+
+Simple code flow
+----------------
+
+Execution should mostly be a simple hierarchy: a function that calls several other functions that in turn call other functions. This is a GUI application so it is inevitably event-driven. Qt uses signals and slots to propagate events. This is fine, but we should try to not complicate things more with lambdas, callbacks, asynchronous operations and other things that complicate the flow of execution.
