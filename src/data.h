@@ -12,7 +12,7 @@
 
 #include "item.h"
 
-class DataSaveThread;  // Foward declaration.
+class DataSaveThread;  // Forward declaration.
 
 class Data : public QObject
 {

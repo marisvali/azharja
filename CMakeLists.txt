@@ -12,7 +12,8 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Core Gui Network Core5Compat)
 qt_standard_project_setup()
 
 # Create a target called ScintillaEdit that just uses some .h and .lib files. This target can then be used by my other targets like any other CMake target.
-add_library(ScintillaEdit STATIC IMPORTED)
+add_library(ScintillaEdit STATIC IMPORTED
+        ../../qt-sources/qtbase/src/corelib/global/qlogging.cpp)
 set_target_properties(ScintillaEdit PROPERTIES
   IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/scintilla/lib/ScintillaEditd.lib"
   IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/scintilla/lib/ScintillaEdit.lib"
