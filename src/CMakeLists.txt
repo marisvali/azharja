@@ -11,9 +11,7 @@ qt_add_executable(azharja
     qtsingleapplication.cpp
     qtsinglecoreapplication.cpp
     scintillaeditcustom.cpp
-        boyermoore.h
-        boyermoore.cpp
-        boyermoore.h
+    boyermoore.cpp
 )
 
 target_link_libraries(azharja PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::Network Qt6::Core5Compat ScintillaEdit)
