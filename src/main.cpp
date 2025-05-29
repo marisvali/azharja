@@ -5,7 +5,10 @@
 
 int main(int argc, char* argv[])
 {
+
     QtSingleApplication app(argc, argv);
+
+    ThemeManager::applyGlobalPalette(Theme::Dark);
 
     if (app.isRunning())
         return !app.sendMessage("Wake up!");

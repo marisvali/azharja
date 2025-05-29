@@ -10,6 +10,7 @@
 #include "itemexplorer.h"
 #include "itemparentswidget.h"
 #include "itemwidget.h"
+#include "thememanager.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -27,6 +28,7 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+
 protected:
     QSettings mSettings;
     Data mData;
@@ -37,8 +39,12 @@ protected:
     ItemParentsWidget *mItemParents = nullptr;
     QMessageBox *mWaitForSave = nullptr;
     QTimer *mTimerSaveToMemory;
+    QLineEdit* mSearchLineEdit = nullptr;
+    ScintillaEditCustom *scintillaEdit = nullptr;
     bool mCloseInitiated = false;
     bool mCloseFromSystemTray = false;
+    bool mSearchActive = false;
+
 
     bool HasOnlyEmptyItem();
     ItemWidget *ItemOpenGetter(int64_t itemID);
@@ -47,6 +53,7 @@ protected:
     void closeEvent(QCloseEvent *event);
     void ItemParentsUpdate();
     void ItemOpen(ItemWidget *itemWidget, bool grabFocus = true);
+    //void keyPressEvent(QKeyEvent* event) override;
 
 private slots:
     void ItemCloseCurrent();
@@ -70,8 +77,18 @@ private slots:
     void NeedChanged();
     void SaveWindowPositions();
     void ItemFinder();
+    void highlightMatch(ScintillaEditCustom* editor, int startPos, int length);
+    void findNext();
+    void findPrevious();
+    void toggleGlobalTheme();
+
+
 
 private:
     Ui::MainWindow *mUI;
+    QString mLastSearchTerm;
+    Theme mCurrentTheme = Theme::Dark;
+    QList<int> mMatchPositions;
+    int mMatchIndex = -1;
 };
 #endif  // MAINWINDOW_H
