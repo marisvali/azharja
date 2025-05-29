@@ -474,7 +474,6 @@ void MainWindow::CloseExtraWindows() {
     close();
 }
 
-
 void MainWindow::SaveToMemoryTry(QPrivateSignal) {
     SaveWindowPositions();
 
@@ -624,7 +623,7 @@ void MainWindow::ItemFinder()
         mSearchActive = true;
         highlightMatch(editor, mMatchPositions[mMatchIndex], bytes.length());
     }else {
-        mSearchActive = false; // ✅ Explicitly reset if nothing is found
+        mSearchActive = false;
         qDebug() << "Search active:" << mSearchActive;
 
     }

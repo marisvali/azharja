@@ -1,4 +1,6 @@
 #include "scintillaeditcustom.h"
+#include "thememanager.h"
+
 
 #include <QDateTime>
 #include <QShortcut>
@@ -38,9 +40,34 @@ ScintillaEditCustom::ScintillaEditCustom(QFont font, QWidget *parent) : Scintill
     auto altD = new QShortcut(QKeySequence("Alt+d"), this);
     connect(altD, SIGNAL(activated()), this, SLOT(AddDate()));
 
-    // Make the current line visible.
-    setElementColour(SC_ELEMENT_CARET_LINE_BACK, 217 | 235 << 8 | 249 << 16 | 255 << 24);
-    setCaretLineVisibleAlways(false);
+}
+
+void ScintillaEditCustom::applyTheme(Theme theme)
+{
+    if (theme == Theme::Dark) {
+        // Dark theme
+        setElementColour(SC_ELEMENT_CARET_LINE_BACK, QColor(40, 40, 40).rgba());
+        setCaretLineVisibleAlways(false);
+
+        send(SCI_STYLESETFORE, STYLE_DEFAULT, QColor(Qt::white).rgb());
+        send(SCI_STYLESETBACK, STYLE_DEFAULT, QColor(30, 30, 30).rgb());
+
+        send(SCI_SETSELFORE, 1, QColor(255, 255, 255).rgb());
+        send(SCI_SETSELBACK, 1, QColor(50, 50, 50).rgb());
+
+    } else {
+        // Light theme
+        setElementColour(SC_ELEMENT_CARET_LINE_BACK, QColor(220, 235, 245).rgba());
+        setCaretLineVisibleAlways(false);
+
+        send(SCI_STYLESETFORE, STYLE_DEFAULT, QColor(Qt::black).rgb());
+        send(SCI_STYLESETBACK, STYLE_DEFAULT, QColor(Qt::white).rgb());
+
+        send(SCI_SETSELFORE, 1, QColor(Qt::white).rgb());
+        send(SCI_SETSELBACK, 1, QColor(70, 120, 200).rgb());
+    }
+
+    send(SCI_STYLECLEARALL);
 }
 
 void ScintillaEditCustom::CharAdded(int ch)

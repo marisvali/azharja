@@ -1,10 +1,14 @@
 #include "itemwidget.h"
+#include "thememanager.h"
 
 #include <QTabBar>
 #include <QTabWidget>
 #include <QVBoxLayout>
 
-ItemWidget::ItemWidget(Item& item, QFont font) : mItem(item)
+
+ItemWidget::ItemWidget(Item& item, QFont font, Theme theme)
+    : mItem(item)
+
 {
     mNeed = new QLineEdit();
     mNeed->setObjectName("Need");
@@ -32,6 +36,10 @@ ItemWidget::ItemWidget(Item& item, QFont font) : mItem(item)
     layout->addWidget(mNeed);
     layout->addWidget(mJournalAnswer);
 
+    searchLineEdit = new QLineEdit(this);
+    layout->addWidget(searchLineEdit);
+    searchLineEdit->hide();
+
     if (mItem.ID() >= 0)
     {
         mNeed->setText(item.Need());
@@ -41,7 +49,9 @@ ItemWidget::ItemWidget(Item& item, QFont font) : mItem(item)
         mAnswer->emptyUndoBuffer();
     }
 
-    connect(mJournalAnswer, SIGNAL(currentChanged(int)), this, SLOT(TabChanged(int)));
+    ThemeManager::applyEditorTheme(static_cast<ScintillaEdit*>(mAnswer), theme);
+    ThemeManager::applyEditorTheme(static_cast<ScintillaEdit*>(mJournal), theme);
+
     connect(mJournal, SIGNAL(notifyChange()), this, SLOT(UpdateJournal()));
     connect(mAnswer, SIGNAL(notifyChange()), this, SLOT(UpdateAnswer()));
     connect(mNeed, SIGNAL(textChanged(QString)), this, SLOT(UpdateNeed(QString)));
@@ -131,3 +141,4 @@ void ItemWidget::SwitchTabs()
     else
         mJournalAnswer->setCurrentIndex(0);
 }
+

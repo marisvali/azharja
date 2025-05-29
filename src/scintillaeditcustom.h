@@ -11,6 +11,7 @@
 // static library.
 #define MAKING_LIBRARY
 #include <ScintillaEdit.h>
+#include "thememanager.h"
 
 class ScintillaEditCustom : public ScintillaEdit
 {
@@ -23,6 +24,8 @@ signals:
 private slots:
     void CharAdded(int ch);
     void AddDate();
+    void applyTheme(Theme theme);
+
 };
 
 #endif  // SCINTILLAEDITCUSTOM_H

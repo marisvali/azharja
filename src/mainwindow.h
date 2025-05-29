@@ -39,12 +39,11 @@ protected:
     ItemParentsWidget *mItemParents = nullptr;
     QMessageBox *mWaitForSave = nullptr;
     QTimer *mTimerSaveToMemory;
-    QLineEdit* mSearchLineEdit = nullptr;
+    QLineEdit* msearchLineEdit = nullptr;
     ScintillaEditCustom *scintillaEdit = nullptr;
     bool mCloseInitiated = false;
     bool mCloseFromSystemTray = false;
-    bool mSearchActive = false;
-
+    bool mSearchActive =false;
 
     bool HasOnlyEmptyItem();
     ItemWidget *ItemOpenGetter(int64_t itemID);
@@ -53,7 +52,6 @@ protected:
     void closeEvent(QCloseEvent *event);
     void ItemParentsUpdate();
     void ItemOpen(ItemWidget *itemWidget, bool grabFocus = true);
-    //void keyPressEvent(QKeyEvent* event) override;
 
 private slots:
     void ItemCloseCurrent();

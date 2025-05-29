@@ -7,18 +7,23 @@
 
 #include "data.h"
 #include "scintillaeditcustom.h"
+#include "thememanager.h"
+
 
 class ItemWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    ItemWidget(Item &item, QFont font);
+    ItemWidget(Item &item, QFont font, Theme theme);
     ~ItemWidget();
 
     QLineEdit *mNeed = nullptr;
     ScintillaEditCustom *mJournal = nullptr;
     ScintillaEditCustom *mAnswer = nullptr;
+    ScintillaEditCustom *answerEdit = nullptr;
+    QLineEdit *searchLineEdit = nullptr;
+
 
     int64_t ItemID() { return mItem.ID(); }
     bool IsEmpty();
