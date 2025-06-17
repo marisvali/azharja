@@ -39,11 +39,13 @@ protected:
     ItemParentsWidget *mItemParents = nullptr;
     QMessageBox *mWaitForSave = nullptr;
     QTimer *mTimerSaveToMemory;
-    QLineEdit* msearchLineEdit = nullptr;
+    QLineEdit* mSearchLineEdit = nullptr;
     ScintillaEditCustom *scintillaEdit = nullptr;
+    ScintillaEditCustom* mCurrentEditor = nullptr;
     bool mCloseInitiated = false;
     bool mCloseFromSystemTray = false;
-    bool mSearchActive =false;
+    bool mSearchMode = false;
+    int mLastSearchPosition = 0; // Add this line to track the last search position
 
     bool HasOnlyEmptyItem();
     ItemWidget *ItemOpenGetter(int64_t itemID);
@@ -52,6 +54,8 @@ protected:
     void closeEvent(QCloseEvent *event);
     void ItemParentsUpdate();
     void ItemOpen(ItemWidget *itemWidget, bool grabFocus = true);
+    void keyPressEvent(QKeyEvent *event) override;
+
 
 private slots:
     void ItemCloseCurrent();
@@ -79,6 +83,8 @@ private slots:
     void findNext();
     void findPrevious();
     void toggleGlobalTheme();
+    void CloseSearchBar();
+
 
 
 
@@ -88,5 +94,6 @@ private:
     Theme mCurrentTheme = Theme::Dark;
     QList<int> mMatchPositions;
     int mMatchIndex = -1;
+    void UpdateCurrentEditor(ItemWidget* currentItem);
 };
 #endif  // MAINWINDOW_H

@@ -23,10 +23,10 @@
 
 
 MainWindow::MainWindow(QWidget *parent)
-        : QMainWindow(parent),
-          mUI(new Ui::MainWindow),
-          mSettings(QDir(QCoreApplication::applicationDirPath()).filePath("Azharja.ini"),
-                    QSettings::IniFormat) {
+    : QMainWindow(parent),
+      mUI(new Ui::MainWindow),
+      mSettings(QDir(QCoreApplication::applicationDirPath()).filePath("Azharja.ini"),
+                QSettings::IniFormat) {
     mUI->setupUi(this);
 
     if (!mSettings.contains("DataPath")) {
@@ -45,7 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     mSplitterMain = new QSplitter();
     mSplitterMain->setOrientation(Qt::Orientation::Vertical);
-    // Adds a new item in mSplitterMain. It's necessary to add instead of doing a replaceWidget because replaceWidget causes a bug if it's called right after addWidget, in the MainWindow constructor.
+    
     ItemOpenNew(true);
     mSplitterMain->addWidget(new QWidget());
     QGridLayout *layout = new QGridLayout(this->centralWidget());
@@ -58,30 +58,12 @@ MainWindow::MainWindow(QWidget *parent)
             [this](QPoint) { ParentDelete(); });
     ItemParentsUpdate();
 
-    // Add shortcuts.
-    auto enter = new QShortcut(QKeySequence(Qt::Key_Return), this);
-    connect(enter, &QShortcut::activated, this, [this]() {
-                if (mSearchActive) findNext();
-            });
-
-    auto shiftEnter = new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_Return), this);
-    connect(shiftEnter, &QShortcut::activated, this, [this]() {
-                if (mSearchActive) findPrevious();
-            });
-
     auto toggleTheme = new QShortcut(QKeySequence(Qt::Key_F12), this);
     connect(toggleTheme, &QShortcut::activated, this, &MainWindow::toggleGlobalTheme);
 
-    /*
-    auto f8 = new QShortcut(QKeySequence(Qt::Key_F8), this);
-    connect(f8, SIGNAL(activated()), this, SLOT(findNext()));
-
-    auto f7 = new QShortcut(QKeySequence(Qt::Key_F7), this);
-    connect(f7, SIGNAL(activated()), this, SLOT(findPrevious()));
-    */
-    auto ctrlF = new QShortcut(QKeySequence("Ctrl+f"), this);
-    connect(ctrlF, SIGNAL(activated()), this, SLOT(ItemFinder()));
-
+    auto ctrlF = new QShortcut(QKeySequence("Ctrl+F"), this);
+    connect(ctrlF, &QShortcut::activated, this, &MainWindow::ItemFinder);
+    
     auto ctrlW = new QShortcut(QKeySequence("Ctrl+w"), this);
     connect(ctrlW, SIGNAL(activated()), this, SLOT(ItemCloseCurrent()));
 
@@ -120,9 +102,32 @@ MainWindow::MainWindow(QWidget *parent)
     connect(mItemExplorer, SIGNAL(ShowUnassigned()), this, SLOT(ItemExplorerUnassignedShow()));
 
 
+    // Create search bar.
+    mSearchLineEdit = new QLineEdit(this);
+    mSearchLineEdit->setPlaceholderText("Search...");
+    mSearchLineEdit->hide();
+    mSearchLineEdit->setFixedWidth(300);
+    
+    connect(mSearchLineEdit, &QLineEdit::returnPressed, this, [this]() {
+                if (!mCurrentEditor || !mSearchLineEdit) return;
+
+                QString term = mSearchLineEdit->text();
+                mLastSearchTerm = term; // Store for next/prev searches
+                QByteArray utf8 = term.toUtf8();
+                
+                // Search from current position
+                int pos = mCurrentEditor->send(SCI_GETCURRENTPOS);
+                int foundPos = mCurrentEditor->send(SCI_SEARCHNEXT, 0, reinterpret_cast<sptr_t>(utf8.constData()));
+
+                if (foundPos != -1) {
+                    mCurrentEditor->send(SCI_SETSEL, foundPos, foundPos + utf8.length());
+                    mCurrentEditor->send(SCI_SCROLLCARET);
+                }
+            });
+
     // Initialize the item explorer for unassigned items.
     mItemExplorerUnassigned =
-            new ItemExplorer("ExplorerUnassigned", ItemExplorer::ExplorerType::Unassigned, mData, this);
+        new ItemExplorer("ExplorerUnassigned", ItemExplorer::ExplorerType::Unassigned, mData, this);
     mItemExplorerUnassigned->setFont(this->font());
     mItemExplorerUnassigned->setWindowTitle("Unassigned needs");
     connect(mItemExplorerUnassigned, SIGNAL(ItemOpen(int64_t, bool)), this,
@@ -138,14 +143,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(mItemExplorerUnassigned, SIGNAL(ShowUnassigned()), this,
             SLOT(ItemExplorerUnassignedShow()));
 
-    // Initialize the unassigned item explorer dialog.
 
     // Restore the last positions of our windows.
     QSettings settings("PlayfulPatterns", "Azharja");
     restoreGeometry(settings.value("MainWindow/Geometry").toByteArray());
     restoreState(settings.value("MainWindow/WindowState").toByteArray());
     mSplitterMain->restoreGeometry(
-            settings.value("MainWindow/mSplitterMainGeometry").toByteArray());
+        settings.value("MainWindow/mSplitterMainGeometry").toByteArray());
     mSplitterMain->restoreState(settings.value("MainWindow/mSplitterMainState").toByteArray());
 
     // Save data from widget to Item periodically.
@@ -247,7 +251,6 @@ void MainWindow::ItemOpen(int64_t itemID, bool grabFocus) {
     if (found)
         return ItemOpen(found, grabFocus);
 
-    // Create new item widget.
     auto newItem = new ItemWidget(mData[itemID], this->font(), mCurrentTheme);
     connect(newItem, SIGNAL(ItemDeleted()), this, SLOT(ItemDeleted()));
     connect(newItem, SIGNAL(NeedChanged()), this, SLOT(NeedChanged()));
@@ -260,7 +263,6 @@ void MainWindow::ItemOpenNew(bool grabFocus) {
     if (found)
         return ItemOpen(found, grabFocus);
 
-    // Create new item
     auto newItem = new ItemWidget(mData.CreateNewItem(), this->font(), mCurrentTheme);
     connect(newItem, SIGNAL(ItemDeleted()), this, SLOT(ItemDeleted()));
     connect(newItem, SIGNAL(NeedChanged()), this, SLOT(NeedChanged()));
@@ -278,7 +280,7 @@ void MainWindow::ItemOpen(ItemWidget *itemWidget, bool grabFocus) {
     if (mSplitterMain->count() > 0)
         mSplitterMain->replaceWidget(0, itemWidget);
     else
-        mSplitterMain->addWidget(itemWidget);  // This is necessary for the first call to ItemOpen.
+        mSplitterMain->addWidget(itemWidget); 
 
     // Delete the empty item if necessary.
     if (HasOnlyEmptyItem() && itemWidget != mItemsOpen[0]) {
@@ -299,9 +301,15 @@ void MainWindow::ItemOpen(ItemWidget *itemWidget, bool grabFocus) {
         mItemsOpen[0]->deleteLater();
         mItemsOpen.removeAt(0);
     }
+    
+    // Update the current editor to the active tab of the item
+    if (itemWidget->mAnswer) {
+        mCurrentEditor = static_cast<ScintillaEditCustom*>(itemWidget->mAnswer);
+    }
 
-    if (grabFocus)
+    if (grabFocus) {
         ItemCurrentFocus();
+    }
 
     ItemParentsUpdate();
 }
@@ -420,7 +428,7 @@ void MainWindow::AddParent() {
 
     // Show dialog which allows the selection of a parent.
     auto search =
-            new ItemExplorer("ExplorerSearch", ItemExplorer::ExplorerType::Search, mData, this);
+        new ItemExplorer("ExplorerSearch", ItemExplorer::ExplorerType::Search, mData, this);
     search->setFont(this->font());
     search->setWindowTitle("Search need");
     if (search->exec() == QDialog::Accepted) {
@@ -456,22 +464,49 @@ void MainWindow::ItemCurrentFocus() {
 
 
 void MainWindow::CloseExtraWindows() {
-    // Exit item explorer and parent list if open
+    // Check if search bar is visible - prioritize closing it.
+    if (mSearchLineEdit && mSearchLineEdit->isVisible()) {
+        CloseSearchBar();
+        return; // Don't close the app when closing the search bar
+    }
+    
+    // Exit item explorer and parent list if open.
     if (mItemExplorer->isVisible() || mItemExplorerUnassigned->isVisible()) {
         mItemExplorer->hide();
         mItemExplorerUnassigned->hide();
         mSplitterMain->replaceWidget(1, new QWidget());
+        return; 
     }
 
-    // Hide search UI and exit search mode
+    // Hide search UI in item widget.
     if (!mItemsOpen.isEmpty() && mItemsOpen.last()->searchLineEdit->isVisible()) {
         mItemsOpen.last()->searchLineEdit->hide();
-        mSearchActive = false;
-        return; // don't close app
+        return; 
     }
 
-    // Close the app if no other windows are open
+    if (mSearchMode) {
+        mSearchMode = false; 
+        return;
+    }
+    
+    // Close the app if no other windows are open.
     close();
+}
+
+void MainWindow::CloseSearchBar()
+{
+    mSearchMode = false;
+    // Reset search position when exiting search mode.
+    mLastSearchPosition = 0;
+    
+    if (mSearchLineEdit) {
+        mSearchLineEdit->hide();
+        mSearchLineEdit->clear();
+    }
+
+    if (!mItemsOpen.isEmpty() && mItemsOpen.last()->mAnswer) {
+        mItemsOpen.last()->mAnswer->setFocus(true);
+    }
 }
 
 void MainWindow::SaveToMemoryTry(QPrivateSignal) {
@@ -482,7 +517,6 @@ void MainWindow::SaveToMemoryTry(QPrivateSignal) {
 }
 
 void MainWindow::ItemDeleted() {
-    // Update the items in explorers.
     mItemExplorer->RefreshAfterMaxOneItemDifference();
     mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
 }
@@ -526,115 +560,66 @@ void MainWindow::ItemSwitchTabs() {
         return;
 
     mItemsOpen.last()->SwitchTabs();
+    
+    // Update the current editor based on which tab is now active.
+    if (!mItemsOpen.empty()) {
+        ItemWidget* currentItem = mItemsOpen.last();
+        UpdateCurrentEditor(currentItem);
+    }
 }
 
-void MainWindow::NeedChanged() {
-    mItemExplorer->RefreshAfterMaxOneItemDifference();
-    mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
+// Add this helper method to consistently determine the current editor.
+void MainWindow::UpdateCurrentEditor(ItemWidget* currentItem) {
+    if (!currentItem) return;
+    
+    // Properly detect which tab is active and set the appropriate editor.
+    int tabIndex = currentItem->GetActiveTabIndex();
+    
+    // Swap the editor selection - the tab indexes were reversed.
+    if (tabIndex == 0 && currentItem->mJournal) {
+        mCurrentEditor = static_cast<ScintillaEditCustom*>(currentItem->mJournal);
+    } else if (tabIndex == 1 && currentItem->mAnswer) {
+        mCurrentEditor = static_cast<ScintillaEditCustom*>(currentItem->mAnswer);
+    }
 }
 
 void MainWindow::ItemFinder()
 {
-    bool okPressed = false;
-    QString searchWord = QInputDialog::getText(
-        this, "Azharja", "Enter the word you want to search for:", QLineEdit::Normal, "",
-        &okPressed);
+    mSearchMode = true;
 
-    // Prevent searching by mistake for just one character.
-    if (!okPressed || searchWord.isEmpty() || searchWord.length() < 2) {
-        QMessageBox::information(this, "Azharja", "Search term must be at least 2 characters.");
-        return;
+    if (!mSearchLineEdit) return;
+
+    // Make sure current editor is set to active tab of current item.
+    if (!mItemsOpen.empty()) {
+        ItemWidget* currentItem = mItemsOpen.last();
+        UpdateCurrentEditor(currentItem);
+        
+        // Set search position to current cursor position instead of 0.
+        if (mCurrentEditor) {
+            mLastSearchPosition = mCurrentEditor->send(SCI_GETCURRENTPOS);
+        } else {
+            mLastSearchPosition = 0;
+        }
+    } else {
+        mLastSearchPosition = 0;
     }
     
+    // Position the search bar at the bottom of the window.
+    int x = 10;
+    int y = height() - mSearchLineEdit->height() - 10;
+    mSearchLineEdit->move(x, y);
 
-    // Global match count.
-    /*
-    int totalCount = 0;
-    for (auto item : mData.Items())
-    {
-        totalCount += SearchStringPattern(item->Journal(), searchWord).size();
-        totalCount += SearchStringPattern(item->Answer(), searchWord).size();
-    }
-
-    QMessageBox::information(
-        this, "Azharja",
-        QString("The word '%1' was found %2 times in the data.").arg(searchWord).arg(totalCount));
-    */
-    // Local search and match tracking.
-    if (mItemsOpen.isEmpty())
-        return;
-
-    ItemWidget *current = mItemsOpen.last();
-    if (!current || !current->mAnswer)
-        return;
-
-    auto *editor = current->mAnswer;
-    int length = editor->length();
-    int startPos = editor->currentPos();
-    QByteArray bytes = searchWord.toUtf8();
-
-    mMatchPositions.clear();
-    mMatchIndex = -1;
-    mLastSearchTerm = searchWord;
-
-    // Try searching from cursor to end.
-    editor->setTargetRange(startPos, length);
-    int pos = editor->searchInTarget(bytes.length(), bytes.constData());
-
-    // If nothing found, wrap and search from start to cursor.
-    if (pos == -1)
-    {
-        editor->setTargetRange(0, startPos);
-        pos = editor->searchInTarget(bytes.length(), bytes.constData());
-    }
-
-    // If still nothing, return.
-    if (pos == -1)
-        return;
-
-    // Now that we found a match, collect all matches across full text.
-    editor->setTargetRange(0, length);
-    pos = editor->searchInTarget(bytes.length(), bytes.constData());
-
-    while (pos != -1)
-    {
-        mMatchPositions.append(pos);
-        qDebug() << "Adding match at pos:" << pos;
-        editor->setTargetRange(pos + bytes.length(), length);
-        pos = editor->searchInTarget(bytes.length(), bytes.constData());
-    }
-
-    // Highlight the first one.
-    if (!mMatchPositions.isEmpty())
-    {
-        // Set initial index to first match after cursor if possible.
-        for (int i = 0; i < mMatchPositions.size(); ++i)
-        {
-            if (mMatchPositions[i] >= startPos)
-            {
-                mMatchIndex = i;
-                break;
-            }
-        }
-        if (mMatchIndex == -1)
-        {
-            mMatchIndex = 0;
-        }
-        mSearchActive = true;
-        highlightMatch(editor, mMatchPositions[mMatchIndex], bytes.length());
-    }else {
-        mSearchActive = false;
-        qDebug() << "Search active:" << mSearchActive;
-
-    }
+    mSearchLineEdit->clear();
+    mSearchLineEdit->show();
+    mSearchLineEdit->setFocus();
 }
+
 
 
 void MainWindow::highlightMatch(ScintillaEditCustom* editor, int startPos, int length)
 {
     int endPos = startPos + length;
 
-    // These two lines ensure visual selection and caret at end
     editor->setAnchor(startPos);
     editor->setCurrentPos(endPos);
     editor->scrollCaret();
@@ -674,28 +659,79 @@ void MainWindow::findPrevious()
 void MainWindow::toggleGlobalTheme() {
     mCurrentTheme = (mCurrentTheme == Theme::Dark ? Theme::Light : Theme::Dark);
 
-    ThemeManager::applyGlobalPalette(mCurrentTheme); // Apply to Qt palette.
+    ThemeManager::applyGlobalPalette(mCurrentTheme); 
 
     for (ItemWidget* widget : mItemsOpen) {
         ThemeManager::applyEditorTheme(static_cast<ScintillaEdit*>(widget->mAnswer), mCurrentTheme);
         ThemeManager::applyEditorTheme(static_cast<ScintillaEdit*>(widget->mJournal), mCurrentTheme);
     }
 }
-/*
-void MainWindow::keyPressEvent(QKeyEvent* event)
-{
-    if (mSearchActive && event->key() == Qt::Key_Escape) {
-        mSearchActive = false;
-        mMatchPositions.clear();
-        mMatchIndex = -1;
-        mLastSearchTerm.clear();
 
-        statusBar()->showMessage("Exited search mode", 2000);
-        event->accept();
-        return;
+void MainWindow::keyPressEvent(QKeyEvent* event) {
+    if (mSearchMode && mSearchLineEdit->isVisible()) {
+        if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
+            if (!mCurrentEditor || !mSearchLineEdit) return;
+            
+            QString term = mSearchLineEdit->text();
+            if (term.isEmpty()) return;
+            
+            mLastSearchTerm = term;
+            QByteArray utf8 = term.toUtf8();
+            
+            int textLength = mCurrentEditor->send(SCI_GETLENGTH);
+            
+            // If we're at the end of the document, restart from beginning.
+            if (mLastSearchPosition >= textLength)
+                mLastSearchPosition = 0;
+                
+            // Set search target range from current position to end of document.
+            mCurrentEditor->send(SCI_SETTARGETRANGE, mLastSearchPosition, textLength);
+            
+            // Search from position
+            int foundPos = mCurrentEditor->send(SCI_SEARCHINTARGET, utf8.length(), reinterpret_cast<sptr_t>(utf8.constData()));
+            
+            if (foundPos != -1) {
+                // Update position to continue from after the current match.
+                mLastSearchPosition = foundPos + utf8.length();
+                
+                // Highlight the match.
+                highlightMatch(mCurrentEditor, foundPos, utf8.length());
+            } else {
+                // If not found after cursor, try searching from the beginning up to the cursor.
+                mCurrentEditor->send(SCI_SETTARGETRANGE, 0, mLastSearchPosition);
+                foundPos = mCurrentEditor->send(SCI_SEARCHINTARGET, utf8.length(), reinterpret_cast<sptr_t>(utf8.constData()));
+                
+                if (foundPos != -1) {
+                    // Update position for next search.
+                    mLastSearchPosition = foundPos + utf8.length();
+                    
+                    highlightMatch(mCurrentEditor, foundPos, utf8.length());
+
+                    qDebug() << "Search wrapped to beginning";
+                } else {
+                    qDebug() << "No matches found for:" << term;
+                }
+            }
+            return;
+        }
+
+        if (event->key() == Qt::Key_Escape && mSearchLineEdit && mSearchLineEdit->isVisible()) {
+            CloseSearchBar();
+            return;
+        }
     }
 
     QMainWindow::keyPressEvent(event);
 }
-*/
+
+void MainWindow::NeedChanged() {
+    mItemExplorer->RefreshAfterMaxOneItemDifference();
+    mItemExplorerUnassigned->RefreshAfterMaxOneItemDifference();
+}
+
+
+
+
+
+
 

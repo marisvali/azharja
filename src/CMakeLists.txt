@@ -1,3 +1,4 @@
+include_directories(${CMAKE_SOURCE_DIR}/scintilla/include)
 qt_add_executable(azharja
     data.cpp
     datasavethread.cpp
@@ -12,6 +13,7 @@ qt_add_executable(azharja
     qtsinglecoreapplication.cpp
     scintillaeditcustom.cpp
     boyermoore.cpp
+        thememanager.cpp
 )
 
 target_link_libraries(azharja PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::Network Qt6::Core5Compat ScintillaEdit)

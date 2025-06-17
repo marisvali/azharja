@@ -31,6 +31,7 @@ public:
     void SaveToMemoryGuaranteed();
     void MarkItemForDeletion();
     void SwitchTabs();
+    int GetActiveTabIndex() const { return mJournalAnswer ? mJournalAnswer->currentIndex() : 0; }
 
 signals:
     void ItemDeleted();
