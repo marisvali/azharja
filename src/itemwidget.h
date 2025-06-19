@@ -36,6 +36,7 @@ public:
 signals:
     void ItemDeleted();
     void NeedChanged();
+    void TabSwitched();
 
 protected:
     QTabWidget *mJournalAnswer;

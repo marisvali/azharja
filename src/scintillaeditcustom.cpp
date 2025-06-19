@@ -54,6 +54,14 @@ void ScintillaEditCustom::applyTheme(Theme theme)
 
         send(SCI_SETSELFORE, 1, QColor(255, 255, 255).rgb());
         send(SCI_SETSELBACK, 1, QColor(50, 50, 50).rgb());
+        
+        QColor wsColor = QColor(70, 70, 70);
+        send(SCI_SETWHITESPACEFORE, true, wsColor.rgb());
+        send(SCI_SETWHITESPACEBACK, false, QColor(30, 30, 30).rgb());
+        
+        for (int margin = 0; margin < margins(); margin++) {
+            send(SCI_SETMARGINBACKN, margin, QColor(30, 30, 30).rgb());
+        }
 
     } else {
         // Light theme
@@ -65,9 +73,19 @@ void ScintillaEditCustom::applyTheme(Theme theme)
 
         send(SCI_SETSELFORE, 1, QColor(Qt::white).rgb());
         send(SCI_SETSELBACK, 1, QColor(70, 120, 200).rgb());
+        
+        QColor wsColor = QColor(230, 230, 230);
+        send(SCI_SETWHITESPACEFORE, true, wsColor.rgb());
+        send(SCI_SETWHITESPACEBACK, false, QColor(Qt::white).rgb());
+        
+        for (int margin = 0; margin < margins(); margin++) {
+            send(SCI_SETMARGINBACKN, margin, QColor(Qt::white).rgb());
+        }
     }
 
     send(SCI_STYLECLEARALL);
+    send(SCI_SETVIEWWS, SCWS_INVISIBLE);
+    send(SCI_SETVIEWEOL, false);
 }
 
 void ScintillaEditCustom::CharAdded(int ch)

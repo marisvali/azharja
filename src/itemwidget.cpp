@@ -20,6 +20,9 @@ ItemWidget::ItemWidget(Item& item, QFont font, Theme theme)
 
     auto tabAnswer = new QWidget();
     mJournalAnswer->addTab(tabAnswer, "Answer");
+    
+    // Connect to the existing TabChanged slot
+    connect(mJournalAnswer, &QTabWidget::currentChanged, this, &ItemWidget::TabChanged);
 
     QVBoxLayout* tabJournalLayout = new QVBoxLayout(tabJournal);
     mJournal = new ScintillaEditCustom(font);
@@ -84,6 +87,9 @@ void ItemWidget::TabChanged(int index)
         this->setFocusProxy(mJournal);
     else
         this->setFocusProxy(mAnswer);
+    
+    // Emit the signal when tabs are changed
+    emit TabSwitched();
 }
 
 void ItemWidget::UpdateJournal()

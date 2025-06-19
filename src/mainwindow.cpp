@@ -277,6 +277,16 @@ void MainWindow::ItemOpenNew(bool grabFocus) {
 
 
 void MainWindow::ItemOpen(ItemWidget *itemWidget, bool grabFocus) {
+    // Close search bar first.
+    if (mSearchLineEdit && mSearchLineEdit->isVisible()) {
+        mSearchLineEdit->blockSignals(true);
+        mSearchLineEdit->hide();
+        mSearchLineEdit->clear();
+        mSearchMode = false;
+        mSearchLineEdit->blockSignals(false);
+        qApp->processEvents();
+    }
+    
     if (mSplitterMain->count() > 0)
         mSplitterMain->replaceWidget(0, itemWidget);
     else
@@ -296,6 +306,10 @@ void MainWindow::ItemOpen(ItemWidget *itemWidget, bool grabFocus) {
         mItemsOpen.push_back(itemWidget);
     }
 
+    disconnect(itemWidget, &ItemWidget::TabSwitched, this, &MainWindow::onTabSwitched);
+    
+    connect(itemWidget, &ItemWidget::TabSwitched, this, &MainWindow::onTabSwitched);
+
     // Clear memory beyond 20 open items.
     if (mItemsOpen.size() > 20) {
         mItemsOpen[0]->deleteLater();
@@ -303,15 +317,29 @@ void MainWindow::ItemOpen(ItemWidget *itemWidget, bool grabFocus) {
     }
     
     // Update the current editor to the active tab of the item
-    if (itemWidget->mAnswer) {
-        mCurrentEditor = static_cast<ScintillaEditCustom*>(itemWidget->mAnswer);
-    }
-
+    UpdateCurrentEditor(itemWidget);
+    
     if (grabFocus) {
-        ItemCurrentFocus();
+        QTimer::singleShot(0, this, [this]() {
+            ItemCurrentFocus();
+        });
     }
 
     ItemParentsUpdate();
+}
+
+void MainWindow::onTabSwitched() {
+    qDebug() << "TabSwitched signal received - closing search bar";
+    if (mSearchLineEdit && mSearchLineEdit->isVisible()) {
+        qDebug() << "Search bar is visible, closing it";
+        CloseSearchBar();
+    }
+    
+    // Update the current editor based on the active tab.
+    if (!mItemsOpen.isEmpty()) {
+        ItemWidget* currentItem = mItemsOpen.last();
+        UpdateCurrentEditor(currentItem);
+    }
 }
 
 void MainWindow::ItemParentsUpdate() {
@@ -341,6 +369,16 @@ void MainWindow::ItemCloseCurrent(bool grabFocus) {
 
     if (HasOnlyEmptyItem())
         return;
+    
+    // Close search bar first.
+    if (mSearchLineEdit && mSearchLineEdit->isVisible()) {
+        mSearchLineEdit->blockSignals(true);
+        mSearchLineEdit->hide();
+        mSearchLineEdit->clear();
+        mSearchMode = false;
+        mSearchLineEdit->blockSignals(false);
+        qApp->processEvents();
+    }
 
     mItemsOpen.last()->SaveToMemoryGuaranteed();
     mItemsOpen.last()->deleteLater();
@@ -496,17 +534,26 @@ void MainWindow::CloseExtraWindows() {
 void MainWindow::CloseSearchBar()
 {
     mSearchMode = false;
-    // Reset search position when exiting search mode.
     mLastSearchPosition = 0;
     
-    if (mSearchLineEdit) {
-        mSearchLineEdit->hide();
+    if (mSearchLineEdit && mSearchLineEdit->isVisible()) {
+        mSearchLineEdit->blockSignals(true);  
         mSearchLineEdit->clear();
+        mSearchLineEdit->hide();
+        mSearchLineEdit->blockSignals(false);
     }
 
-    if (!mItemsOpen.isEmpty() && mItemsOpen.last()->mAnswer) {
-        mItemsOpen.last()->mAnswer->setFocus(true);
-    }
+    QTimer::singleShot(0, this, [this]() {
+        if (!mItemsOpen.isEmpty()) {
+            ItemWidget* currentItem = mItemsOpen.last();
+            UpdateCurrentEditor(currentItem);
+            
+            if (mCurrentEditor) {
+                mCurrentEditor->setFocus(true);
+                qApp->processEvents(); 
+            }
+        }
+    });
 }
 
 void MainWindow::SaveToMemoryTry(QPrivateSignal) {
@@ -556,6 +603,16 @@ void MainWindow::ItemDeleteCurrent(bool grabFocus) {
 }
 
 void MainWindow::ItemSwitchTabs() {
+    // Close search bar when switching tabs.
+    if (mSearchLineEdit && mSearchLineEdit->isVisible()) {
+        mSearchLineEdit->blockSignals(true);
+        mSearchLineEdit->hide();
+        mSearchLineEdit->clear();
+        mSearchMode = false;
+        mSearchLineEdit->blockSignals(false);
+        qApp->processEvents();
+    }
+    
     if (mItemsOpen.empty())
         return;
 
@@ -565,6 +622,15 @@ void MainWindow::ItemSwitchTabs() {
     if (!mItemsOpen.empty()) {
         ItemWidget* currentItem = mItemsOpen.last();
         UpdateCurrentEditor(currentItem);
+        
+        // Set focus to the editor after tab switch.
+        if (mCurrentEditor) {
+            QTimer::singleShot(0, mCurrentEditor, [this]() {
+                if (mCurrentEditor) {
+                    mCurrentEditor->setFocus(true);
+                }
+            });
+        }
     }
 }
 
@@ -662,8 +728,15 @@ void MainWindow::toggleGlobalTheme() {
     ThemeManager::applyGlobalPalette(mCurrentTheme); 
 
     for (ItemWidget* widget : mItemsOpen) {
-        ThemeManager::applyEditorTheme(static_cast<ScintillaEdit*>(widget->mAnswer), mCurrentTheme);
-        ThemeManager::applyEditorTheme(static_cast<ScintillaEdit*>(widget->mJournal), mCurrentTheme);
+        if (widget) {
+            if (widget->mAnswer) {
+                ThemeManager::applyEditorTheme(widget->mAnswer, mCurrentTheme);
+            }
+            
+            if (widget->mJournal) {
+                ThemeManager::applyEditorTheme(widget->mJournal, mCurrentTheme);
+            }
+        }
     }
 }
 

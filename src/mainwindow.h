@@ -45,7 +45,7 @@ protected:
     bool mCloseInitiated = false;
     bool mCloseFromSystemTray = false;
     bool mSearchMode = false;
-    int mLastSearchPosition = 0; // Add this line to track the last search position
+    int mLastSearchPosition = 0; 
 
     bool HasOnlyEmptyItem();
     ItemWidget *ItemOpenGetter(int64_t itemID);
@@ -84,7 +84,7 @@ private slots:
     void findPrevious();
     void toggleGlobalTheme();
     void CloseSearchBar();
-
+    void onTabSwitched(); 
 
 
 
