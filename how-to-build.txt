@@ -1,0 +1,122 @@
+Azharja is built using CMake and has two big dependencies: Qt and Scintilla. The instructions below are for Windows, using MSVC as the compiler.
+
+Setup dependencies
+------------------
+
+Install CMake. The exact version most likely doesn't matter. At the time of writing this I used CMake 3.23.1.
+
+Install Python. This is needed to run some simple Python scripts. The version shouldn't matter as long as it's a relatively recent 3.x. At the time of writing this I used Python 3.12.5. Just make sure that you can run scripts from the command line, as in "python script.py".
+
+Install MSVC. This is your compiler. It's important to install a compiler for which Qt comes with pre-built binaries, as it can save you from a lot of headaches. At the time of writing this I used MSVC 2022 and Qt 6.9.1 as 2022 is the latest version of MSVC and Qt comes with pre-built binaries for MSVC 2022.
+
+Install Qt.
+- Download the online installer from Qt website, also known as the version for open source use, the community version or the LGPL license version. The link I last used: https://www.qt.io/download-qt-installer-oss
+- If the online installer asks for an account, create a Qt account if you don't have one.
+- For Azharja, you only need a minimal installation of Qt that includes the pre-compiled binaries for the compiler you will use (e.g. MSVC 2022 64-bit) and under "Additional libraries" select "Qt 5 Compatibility module". No other additional options or libraries are needed. Qt Creator is not needed either.
+- Once the installation finishes, set the environment variable Qt6_ROOT to the directory that contains the "bin" folder where you can see things like Qt6Core.dll and Qt6Cored.dll (e.g. c:\Qt\6.9.1\msvc2022_64).
+- Add the Qt folder that contains qmake to PATH (e.g. c:\Qt\6.9.1\msvc2022_64\bin).
+
+Check dependencies
+------------------
+
+You should be able to run the following commands at the command line:
+- cmake --version
+- python --version
+- qmake --version
+
+For MSVC, you should be able to open the command line which has all the MSVC environment variables setup (e.g. "x64 Native Tools Command Prompt for VS 2022"). In that command line you should be able to run:
+- cl
+
+Build Azharja
+-------------
+
+- Run "python build_scintilla.py" in the scintilla folder. After this runs, the following folders will get populated:
+    - scintilla/include: many .h files
+    - scintilla/bin/debug: ScintillaEdit5.dll and ScintillaEdit5.lib
+    - scintilla/bin/release: ScintillaEdit5.dll and ScintillaEdit5.lib
+
+- Run "cmake" and "cmake --build" however you prefer. I currently use CLion which has CMake integrated, but it works fine to run cmake manually, for example:
+    - mkdir cmake-test
+    - cd cmake-test
+    - cmake ..
+    - cmake --build .
+    After this, you should have azharja.exe. If you run it, it will complain about missing DLLs.
+
+- Run "python copydlls.py <debug|release> <folder containing azharja.exe>". This copies DLL files from the Qt installation that azharja.exe needs in order to run, plus the ScintillaEdit5.dll file. You must specify if you want the debug or release dlls. That depends on how you built the application with CMake, either in debug or release. The "cmake-test" example above generated a debug version on my machine, so I must run "python copydlls.py debug cmake-test\Debug". If I run CMake from CLion, it generates the folders "cmake-build-debug" or "cmake-build-release". So I run "python copydlls.py debug cmake-build-debug" or "python copydlls.py release cmake-build-release". After running this, you should see several DLL files and folders next to azharja.exe.
+
+- Now you can execute azharja.exe.
+
+If everything goes well, you should need to run "build_scintilla.py" only once after you clone the repo. During development, you should need to run "copydlls.py" only if you delete the CMake folder. I expect that to happen rarely once the setup works.
+
+Debugging the build process
+---------------------------
+
+The build process relies on CMakeLists.txt, build_scintilla.py and copydlls.py. If you change things (OS, dependencies) and the build instructions don't work anymore, you should understand those 3 files and adapt them accordingly.
+
+Updating Qt
+-----------
+
+You should be able to update Qt to the latest Qt6 version with no change in the build steps. As there is no Qt7 yet, there will probably be a Qt6 version available for a long time.
+
+Updating Scintilla
+------------------
+
+- Delete everything under scintilla/src.
+- Download the latest Scintilla package (e.g. scite557.zip).
+- The zip should contain 3 folders: lexilla, scintilla and scite.
+- Unzip and copy everything from the scintilla folder inside the zip into the scintilla/src folder in Azharja.
+- If Scintilla devs kept all the naming conventions the same, build_scintilla.py should work out of the box.
+- If build_scintilla.py fails, you must understand the steps inside it and adapt them.
+
+Changing OS
+-----------
+
+Technically, Azharja can be compiled on any OS:
+- it uses portable C++ code
+- Qt is cross-platform
+- Scintilla is built with Qt
+
+However, each OS has its gotchas. If you change to Linux or macOS, you must modify all 3 build files: CMakeLists.txt, build_scintilla.py and copydlls.py. You should also update the build instructions here, and make sure that the build for Windows still works.
+
+History
+-------
+
+Azharja 1.0 was a C# application.
+Azharja 2.0 was a C++ application, with Qt and Scintilla. It was linked dynamically to Qt and built using Qt Creator.
+CMake was then introduced, to enable using other IDEs (at that time, VS Code).
+It was then switched to link statically to Qt and built on Linux.
+As of writing this (2025-06-29) it is dynamically linked and aimed at being built only on Windows. Scintilla sources are also included along with Azharja sources for the first time.
+
+Static vs dynamic linking
+-------------------------
+
+I used static linking because on Linux I had to compile the Qt library anyway and compiling Qt takes a long time. Since I wasn't getting the benefit of pre-compiled binaries, I wanted to have a "cleaner" solution, with a standalone executable that contains everything. At that time, the executable was 20mb. With dynamic linking you have to always copy the necessary .dll/.so files next to the executable and you get a total size of 50mb. So static linking felt like a nice thing to have.
+
+Later, I switched my main OS to Windows and didn't need the Linux setup anymore. When trying to setup the development environment on Windows, the static linking became a big inconvenience. I didn't have a clear set of instructions for compiling Qt statically. Even after compiling it, CMake would complain about things like it doesn't find ZLib. After solving those, I got linking errors that I didn't know how to solve right away. The biggest problem was that while debugging these issues, every new attempt to fix would involve recompiling Qt with different options, and each recompilation took a long time (over 30 min).
+
+In order to have fewer possible failure points, I decided that static linking is a nice-to-have that isn't worth the hassle. I switched back to dynamic linking. The thinking was this: Qt comes with pre-compiled binaries. Just use those. Yes, if we ever want to compile for Linux/macOS, we might have to deal with compiling Qt again. But we should pay that price then, not now.
+
+In general, setting up the development environment for Azharja is the biggest pain point when developing Azharja. It is a big enough pain point that it discouraged me from returning to developing it for a long time. And Qt is the biggest pain point in setting up the development environment for Azharja. It seems that most people use Qt with dynamic linking. Based on this, I bet that dynamic linking will be the most well explained method, with the most helpful posts from people to solve strange errors. If this proves to not be true, feel free to change to whatever makes the setup easier.
+
+Why don't we use Conan?
+-----------------------
+
+Azharja is a C++ project and C++ projects are notorious for the way they handle dependencies. This is mostly due to the fact that C++ was not designed from the start with a package manager, unlike Python with pip or JavaScript with npm.
+
+As of 2025, Conan and CMake are the most popular tools for handling dependencies. Conan is trying to emerge as the standard package manager for C++ and CMake is already established as the standard build system for C++.
+
+Qt is available on https://conan.io/center and Azharja could depend on it via Conan. However, Scintilla isn't on Conan Center. Scintilla needs to be downloaded and built with qmake, from a .pro file. This means that we need to install Qt either way.
+
+Conan is also not flawless, even though Conan2 is a big improvement over Conan1. Conan errors are notoriously confusing and hard to debug. And until it matures, it's hard to guarantee that a future version of Conan will play nice with the instructions. By contrast, it's much easier to trust that 5 years from now the instructions will work with whatever Python and CMake versions are available then.
+
+Possible improvements
+---------------------
+
+1. Automate calls to build_scintilla.py and copydlls.py with CMake. The reasons I didn't do this now:
+- I don't want to recompile Scintilla every time. I don't know how to detect automatically and reliably when Scintilla needs to be compiled.
+- I don't want to copy the dlls every time. I don't know how to detect automatically and reliably when and where these dlls should be copied.
+- I need to learn how to use CMake for this and I didn't feel the price was worth it at this time.
+
+2. Switch to Conan and CMake. This would mean creating a .cmake file for Scintilla that can replace ScintillaEdit.pro. This should make it possible to compile Azharja overall just using Conan and CMake. Installing Qt manually would not be necessary anymore.
+
+I wrote these possible improvements because I am now thinking a lot about how to setup the build environment for Azharja and I might forget the details in the future. However, I currently consider these to be nice-to-have things for which the price is not currently worth it. If setting up the environment is no longer a pain point, it's not worth investing more time in perfecting something that is good enough already.

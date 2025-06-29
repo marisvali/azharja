@@ -11,12 +11,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 find_package(Qt6 REQUIRED COMPONENTS Widgets Core Gui Network Core5Compat)
 qt_standard_project_setup()
 
-# Create a target called ScintillaEdit that just uses some .h and .lib files. This target can then be used by my other targets like any other CMake target.
-add_library(ScintillaEdit STATIC IMPORTED)
+# Create a target called ScintillaEdit that just uses some .h, .lib and .dll files. This target can then be used by my other targets like any other CMake target.
+add_library(ScintillaEdit SHARED IMPORTED)
 set_target_properties(ScintillaEdit PROPERTIES
-  IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/scintilla/lib/ScintillaEditd.lib"
-  IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/scintilla/lib/ScintillaEdit.lib"
-  INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/scintilla/include"
+        IMPORTED_IMPLIB_DEBUG "${CMAKE_SOURCE_DIR}/scintilla/bin/debug/ScintillaEdit5.lib"
+        IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/scintilla/bin/debug/ScintillaEdit5.dll"
+        IMPORTED_IMPLIB_RELEASE "${CMAKE_SOURCE_DIR}/scintilla/bin/release/ScintillaEdit5.lib"
+        IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/scintilla/bin/release/ScintillaEdit5.dll"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/scintilla/include"
 )
 
 # Sources folder

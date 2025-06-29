@@ -1,6 +1,14 @@
 #ifndef SCINTILLAEDITCUSTOM_H
 #define SCINTILLAEDITCUSTOM_H
 
+// Update 2025-06-29:
+// In order to make static linking work with ScintillaEdit.lib, I added a
+// define here: "#define MAKING_LIBRARY".
+// We're switching back to dynamic linking, so I don't need this define anymore.
+// However, it wasn't easy to discover that this define was needed for static
+// linking, so I leave the original comment below, in case we ever want to
+// use static linking:
+
 // This #define took a lot of hours to uncover.
 // Without it, MSVC 2019 complains that there are unresolved external symbols
 // when linking to the debug version of the static lib. It has something to do
@@ -9,7 +17,7 @@
 // define solves the problem. I suspect it has something to do with the
 // Scintilla component expecting to be used as a DLL and I'm using it as a
 // static library.
-#define MAKING_LIBRARY
+// #define MAKING_LIBRARY
 #include <ScintillaEdit.h>
 
 class ScintillaEditCustom : public ScintillaEdit

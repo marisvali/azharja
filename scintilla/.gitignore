@@ -1,0 +1,10 @@
+bin/release/*.dll
+bin/release/*.lib
+bin/debug/*.dll
+bin/debug/*.lib
+include/*.h
+src/qt/ScintillaEdit/ScintillaEdit.h
+src/qt/ScintillaEdit/ScintillaEdit.cpp
+src/qt/ScintillaEdit/ScintillaEdit_debug.pro
+src/qt/ScintillaEdit/qmake
+src/qt/bin
